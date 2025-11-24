@@ -9,6 +9,10 @@
 # include <fcntl.h>
 
 typedef enum t_err {
+	ERR_NEXEC,
+	ERR_OSABI,
+	ERR_ELFHDR,
+	ERR_ENDIAN,
 	ERR_OPEN,
 	ERR_HELP,
 	ERR_READ,
