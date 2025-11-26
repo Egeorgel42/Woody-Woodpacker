@@ -22,5 +22,7 @@ typedef enum t_err {
 char	**init_msgs();
 void	vprintf_exit(char *msg, ...);
 void	parse_elf(int fd, char **err_msg);
+void	parse_elf32(int fd, char **err_msg);
+void	parse_elf64(int fd, char **err_msg);
 
 #endif

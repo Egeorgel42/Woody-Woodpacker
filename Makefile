@@ -10,6 +10,8 @@ pos = $(words $(call _pos,$1,$2))
 
 SRC = src/main.c \
 	src/elf_parsing.c \
+	src/elf32_parsing.c \
+	src/elf64_parsing.c \
 	src/msg.c \
 
 OBJ = ${SRC:.c=.o}

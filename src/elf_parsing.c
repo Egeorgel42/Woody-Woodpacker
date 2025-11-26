@@ -12,24 +12,6 @@ void	parse_e_indent(unsigned char *e_ident, char **err_msg)
 		vprintf_exit(err_msg[ERR_ELFHDR]);
 }
 
-void	parse_elf64(int fd, char **err_msg)
-{
-	printf("64 executable\n");
-	Elf64_Ehdr	header;
-	ssize_t rd = read(fd, &header, sizeof(Elf64_Ehdr));
-	if (header.e_type != ET_NONE)
-		vprintf_exit(err_msg[ERR_NEXEC]);
-
-}
-
-void	parse_elf32(int fd, char **err_msg)
-{
-	printf("32 executable\n");
-	Elf32_Ehdr	header;
-	ssize_t rd = read(fd, &header, sizeof(Elf32_Ehdr));
-}
-
-
 void	parse_elf(int fd, char **err_msg)
 {
 	unsigned char	e_ident[EI_NIDENT];
