@@ -1,25 +1,35 @@
 #include "woody.h"
 
-static void	check_PIE64(int fd, char **err_msg, Elf64_Ehdr *header)
+/// @brief check for type of program header, if no PT_INTERP are present, then that means this is not an executable but a dynamic library (.so)
+static void	check_PIE64(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr *pgr_hdr)
 {
 	bool	is_executable = false;
 
-	Elf64_Phdr	*pgr = malloc(header->e_phentsize * header->e_phnum);
-	lseek(fd, header->e_phoff, SEEK_SET);
 	for (int i = 0; i < header->e_phnum; i++)
 	{
-		size_t rd = read(fd, &pgr[i], header->e_phentsize);
-		if (rd < header->e_phentsize)
-			vprintf_exit(err_msg[ERR_READ], strerror(errno));
-	}
-	for (int i = 0; i < header->e_phnum; i++)
-	{
-		if (pgr[i].p_type == PT_INTERP)
+		if (pgr_hdr[i].p_type == PT_INTERP)
 			is_executable = true;
 	}
 	if (!is_executable)
+	{
+		free(pgr_hdr);
 		vprintf_exit(err_msg[ERR_NEXEC]);
-	free(pgr);
+	}
+}
+
+/// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
+static void	parse_pgr64(int fd, char **err_msg, Elf64_Ehdr *header)
+{
+	size_t	size = header->e_phentsize * header->e_phnum;
+
+	Elf64_Phdr	*pgr_hdr = malloc(size);
+	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
+	size_t rd = read(fd, pgr_hdr, size);
+	if (rd < size)
+		vprintf_exit(err_msg[ERR_READ], strerror(errno));
+	if (header->e_type == ET_DYN)
+		check_PIE64(err_msg, header, pgr_hdr);
+	free(pgr_hdr);
 }
 
 void	parse_elf64(int fd, char **err_msg)
@@ -28,10 +38,9 @@ void	parse_elf64(int fd, char **err_msg)
 	size_t rd = read(fd, &header, sizeof(Elf64_Ehdr));
 	if (rd < sizeof(Elf64_Ehdr))
 		vprintf_exit(err_msg[ERR_OPEN], strerror(errno));
-	if (header.e_type != ET_EXEC && header.e_type != ET_DYN)
+	if (header.e_type != ET_EXEC && header.e_type != ET_DYN) // check for executable or dynamic program
 		vprintf_exit(err_msg[ERR_NEXEC]);
 	if (header.e_version == EV_NONE || header.e_version != EV_CURRENT)
 		vprintf_exit(err_msg[ERR_ELFHDR]);
-	if (header.e_type == ET_DYN)
-		check_PIE64(fd, err_msg, &header);
+	parse_pgr64(fd, err_msg, &header);
 }

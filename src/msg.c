@@ -13,6 +13,7 @@ char	**init_msgs()
 	if (!err)
 		vprintf_exit(NULL);
 		
+	assign_msg(ERR_NEXEC, "woody_packer: Given parameter is not an elf file\n", err);
 	assign_msg(ERR_NEXEC, "woody_packer: Given file is not an executable\n", err);
 	assign_msg(ERR_OSABI, "woody_packer: Incompatible OS-ABI executable\n", err);
 	assign_msg(ERR_ELFHDR, "woody_packer: Invalid Elf executable header\n", err);
