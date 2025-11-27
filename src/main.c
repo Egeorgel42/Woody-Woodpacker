@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 	if (fd == -1)
 		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
 	encrypt_info	*info = parse_elf(fd, err_msg);
-	encrypt_engine(encrypt_info *info, argv);
+	encrypt_engine(info, argv);
 	close(fd);
 	free(info);
 	free_msg(err_msg);
