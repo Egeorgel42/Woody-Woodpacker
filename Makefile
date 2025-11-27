@@ -4,8 +4,8 @@ ASM = nasm
 LIB = libasm/libasm.a Libft/libft.a
 LIBDIR = libasm Libft
 
-PAYLOAD32 = payload32.bin
-PAYLOAD64 = payload64.bin
+PAYLOAD32 = payload/payload32.bin
+PAYLOAD64 = payload/payload64.bin
 PAYLOAD32SRC = payload/XTEA_decrypt_32.s
 PAYLOAD64SRC = payload/XTEA_decrypt_64.s
 PAYLOADFLAGS = -f bin
