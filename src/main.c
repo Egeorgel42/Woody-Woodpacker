@@ -1,4 +1,4 @@
-#include "woody.h"
+#include "../include/woody.h"
 
 int main(int argc, char **argv)
 {

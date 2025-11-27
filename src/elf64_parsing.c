@@ -1,4 +1,4 @@
-#include "woody.h"
+#include "../include/woody.h"
 
 /// @brief check for type of program header, if no PT_INTERP are present, then that means this is not an executable but a dynamic library (.so)
 static void	check_PIE64(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr *pgr_hdr)
