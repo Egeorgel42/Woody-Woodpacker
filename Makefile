@@ -6,8 +6,8 @@ LIBDIR = libasm Libft
 
 PAYLOAD32 = payload32.bin
 PAYLOAD64 = payload64.bin
-PAYLOAD32SRC = payload/XTEA_decrypt_32.s
-PAYLOAD64SRC = payload/XTEA_decrypt_64.s
+PAYLOAD32SRC = Payload/XTEA_decrypt_32.s
+PAYLOAD64SRC = Payload/XTEA_decrypt_64.s
 PAYLOADFLAGS = -f bin
 
 _pos = $(if $(findstring $1,$2),$(call _pos,$1,\
@@ -20,12 +20,12 @@ SRC = src/main.c \
 	src/elf64_parsing.c \
 	src/msg.c \
 	src/encrypt_engine.c \
-	XTEA/XTEA_encrypt.c \
+	Payload/XTEA_encrypt.c \
 
 OBJ = ${SRC:.c=.o}
 
 CFLAGS = -Wall -Wextra -Werror -g -z noexecstack
-CLIBS = -L./libasm -lasm -L./libft -lft
+CLIBS = -L./libasm -lasm -L./Libft -lft
 NAME = woody_woodpacker
 
 all: $(NAME)
