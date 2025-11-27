@@ -13,7 +13,6 @@ typedef struct t_encrypt_info {
 	uint64_t	file_pos; //position of program section in file
 	uint64_t	mem_addr; //position of program section in memory, litteral/offset if dynamic allocation or not
 	uint64_t	file_size; //size of program section in file
-	uint64_t	mem_size; //size of program section in memory, equal file_size + size of .bss for the section
 } encrypt_info;
 
 /// @brief Error codes related to woody
