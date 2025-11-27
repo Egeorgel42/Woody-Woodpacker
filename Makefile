@@ -1,8 +1,8 @@
 CC = gcc
 ASM = nasm
 
-LIB = libasm/libasm.a libft/libft.a
-LIBDIR = libasm libft
+LIB = libasm/libasm.a Libft/libft.a
+LIBDIR = libasm Libft
 
 PAYLOAD32 = payload32.bin
 PAYLOAD64 = payload64.bin

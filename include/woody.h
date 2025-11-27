@@ -1,6 +1,6 @@
 #ifndef WOODY_H
 # define WOODY_H
-# include "../libft/libft.h"
+# include "../Libft/libft.h"
 # include <elf.h>
 # include <stdio.h>
 # include <unistd.h>
