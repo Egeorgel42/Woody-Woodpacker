@@ -27,7 +27,10 @@ static encryt_info *get_pgr_info(char **err_msg, Elf32_Ehdr *header, Elf32_Phdr	
 			j++;
 	}
 	if (!j)
+	{
+		free(pgr_hdr);
 		vprintf_exit(ERR_NCODE, err_msg);
+	}
 
 	encryt_info	*info = malloc(sizeof(encryt_info) * j + 1);
 	j = 0;
@@ -56,7 +59,10 @@ static encryt_info *parse_pgr32(int fd, char **err_msg, Elf32_Ehdr *header)
 	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
 	size_t rd = read(fd, pgr_hdr, size);
 	if (rd < size)
+	{
+		free(pgr_hdr);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+	}
 	if (header->e_type == ET_DYN)
 		check_PIE32(err_msg, header, pgr_hdr);
 	return get_pgr_info(err_msg, header, pgr_hdr);
