@@ -27,7 +27,7 @@ static void	check_PIE64(int fd, char **err_msg, Elf64_Ehdr *header)
 }
 
 /// @brief allocate and return .text section data that need to be encrypted
-static encrypt_info *get_pgr_info(char **err_msg, Elf64_Ehdr *header, Elf64_Shdr	*sh_hdr)
+static encrypt_info *get_pgr_info(char **err_msg, Elf64_Ehdr *header, Elf64_Shdr *sh_hdr)
 {
 	unsigned int j = 0;
 	for (int i = 0; i < header->e_phnum; i++)

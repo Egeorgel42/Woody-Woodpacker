@@ -8,6 +8,7 @@ PAYLOAD32 = payload32.bin
 PAYLOAD64 = payload64.bin
 PAYLOAD32SRC = Payload/XTEA_decrypt_32.s
 PAYLOAD64SRC = Payload/XTEA_decrypt_64.s
+
 PAYLOADFLAGS = -f bin
 
 _pos = $(if $(findstring $1,$2),$(call _pos,$1,\
