@@ -1,13 +1,6 @@
 #include "woody.h"
 
 
-char *encrypt_engine(encrypt_info *info)
-{
-	
-}
-
-
-
 int main(int argc, char **argv)
 {
 	char	**err_msg = init_msgs();
@@ -17,6 +10,7 @@ int main(int argc, char **argv)
 	if (fd == -1)
 		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
 	encrypt_info	*info = parse_elf(fd, err_msg);
+	encrypt_engine(encrypt_info *info, argv);
 	close(fd);
 	free(info);
 	free_msg(err_msg);
