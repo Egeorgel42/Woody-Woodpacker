@@ -1,4 +1,4 @@
-#include "woody.h"
+#include "../include/woody.h"
 
 #define KEY_SIZE 16
 // 128 bits key = 16 bytes
