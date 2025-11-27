@@ -36,5 +36,6 @@ void		free_msg(char **err_msg);
 encryt_info	*parse_elf(int fd, char **err_msg);
 encryt_info *parse_elf32(int fd, char **err_msg);
 encryt_info *parse_elf64(int fd, char **err_msg);
+void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
 
 #endif
