@@ -18,7 +18,7 @@ static void	check_PIE64(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr *pgr_hdr)
 }
 
 /// @brief allocate and return .text section data that need to be encrypted
-static encryt_info *get_pgr_info(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr	*pgr_hdr)
+static encrypt_info *get_pgr_info(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr	*pgr_hdr)
 {
 	unsigned int j = 0;
 	for (int i = 0; i < header->e_phnum; i++)
@@ -32,7 +32,7 @@ static encryt_info *get_pgr_info(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr	
 		vprintf_exit(ERR_NCODE, err_msg);
 	}
 
-	encryt_info	*info = malloc(sizeof(encryt_info) * j + 1);
+	encrypt_info	*info = malloc(sizeof(encrypt_info) * j + 1);
 	j = 0;
 
 	for (int i = 0; i < header->e_phnum; i++)
@@ -51,7 +51,7 @@ static encryt_info *get_pgr_info(char **err_msg, Elf64_Ehdr *header, Elf64_Phdr	
 }
 
 /// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
-static encryt_info *parse_pgr64(int fd, char **err_msg, Elf64_Ehdr *header)
+static encrypt_info *parse_pgr64(int fd, char **err_msg, Elf64_Ehdr *header)
 {
 	size_t	size = header->e_phentsize * header->e_phnum;
 
@@ -68,7 +68,7 @@ static encryt_info *parse_pgr64(int fd, char **err_msg, Elf64_Ehdr *header)
 	return get_pgr_info(err_msg, header, pgr_hdr);
 }
 
-encryt_info	*parse_elf64(int fd, char **err_msg)
+encrypt_info	*parse_elf64(int fd, char **err_msg)
 {
 	Elf64_Ehdr	header;
 	size_t rd = read(fd, &header, sizeof(Elf64_Ehdr));
