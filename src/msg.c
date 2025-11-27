@@ -29,6 +29,7 @@ char	**init_msgs()
 	assign_msg(ERR_HELP, "woody_packer: Invalid parameter: path to elf executable required\n", err);
 	assign_msg(ERR_READ, "woody_packer: Error during read of executable: %s\n", err);
 	assign_msg(ERR_OPEN, "woody_packer: Error during open of executable: %s\n", err);
+	assign_msg(ERR_MALLOC, "woody_packer: Malloc Error: %s\n", err);
 	return err;
 }
 

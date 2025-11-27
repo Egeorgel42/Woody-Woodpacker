@@ -1,4 +1,7 @@
 #include "../include/woody.h"
+#include <sys/mman.h> 
+#include <sys/stat.h> 
+#include <sys/types.h>
 
 #define KEY_SIZE 16
 // 128 bits key = 16 bytes
@@ -24,7 +27,7 @@ void generate_random_key(uint8_t *buffer, size_t size)
 }
 
 
-void *map_file(char *filename, size_t *size, char **err_msg)
+void *map_file(char *filename, size_t *total_size, char **err_msg)
 {
     int fd = open(filename, O_RDWR);
     if (fd == -1) {
@@ -32,48 +35,75 @@ void *map_file(char *filename, size_t *size, char **err_msg)
         return NULL;
     }
 
-    // get file size
     struct stat st;
     if (fstat(fd, &st) == -1) {
         close(fd);
         vprintf_exit(ERR_READ, err_msg, strerror(errno));
         return NULL;
     }
-    *size = st.st_size;
+    *total_size = st.st_size;
 
-    // map da file
-    void *ptr = mmap(NULL, *size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-
-    if (ptr == MAP_FAILED) {
-        close(fd);
-        vprintf_exit(ERR_MALLOC, err_msg, strerror(errno)); // Mmap failed ~ alloc failed
-        return NULL;
-    }
-
-    // mapping stays active until munmap
+    void *ptr = mmap(NULL, *total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     close(fd);
 
+    if (ptr == MAP_FAILED) {
+        vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+        return NULL;
+    }
     return ptr;
 }
 
-void encrypt_engine(encrypt_info *info, char **argv)
+void encrypt_engine(encrypt_info *info, char *filename, char **err_msg)
 {
-	uint8_t key_buffer[KEY_SIZE];
+    // Map file in RAM
+    size_t total_file_size;
+    void *file_ptr = map_file(filename, &total_file_size, err_msg);
 
-	generate_random_key(key_buffer, KEY_SIZE);
-	printf("key_value: ");
-	for (int i = 0; i < KEY_SIZE; i++) {
-		printf("%02X", key_buffer[i]);
-	}
-	printf("\n");
+    // randomly generate the encryption key
+    uint8_t key_buffer[KEY_SIZE];
+    generate_random_key(key_buffer, KEY_SIZE);
 
-	// Casting key_buffer for ciphering, as my ft take 32bits uint*
-	uint32_t *xtea_key = (uint32_t *)key_buffer;
+    printf("key_value: ");
+    for (int i = 0; i < KEY_SIZE; i++) {
+        printf("%02X", key_buffer[i]);
+    }
+    printf("\n");
+    
+    uint32_t *xtea_key = (uint32_t *)key_buffer;
 
-	// Get the data to encrypt
-	size_t file_size;
-	void *ptr = map_file(argv[1], &file_size, err_msg);
+    // Calculate pointer to the data to encrypt, using
+    // the file start + file offset
+    uint8_t *section_ptr = (uint8_t *)file_ptr + info->file_pos;
 
-	xtea_encipher(32, placeholder_for_data, xtea_key);
+    // Ciphering
+    // Convert section pointer to uint32_t* for XTEA
+    uint32_t *code_ptr = (uint32_t *)section_ptr;
+    
+    // info->file_size = number of bytes to cipher, divided by 8 since XTEA needs 64bits blocks
+    size_t num_blocks = info->file_size / 8;
+
+    for (size_t i = 0; i < num_blocks; i++)
+    {
+        // Cipher directly inside memory
+        xtea_encipher(32, &code_ptr[i * 2], xtea_key);
+    }
+
+    // 5. Création du fichier "woody"
+    // Comme mmap modifie la RAM, il faut maintenant écrire cette RAM dans un fichier
+    int fd_out = open("woody", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+    if (fd_out == -1) {
+        munmap(file_ptr, total_file_size);
+        vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
+    }
+
+    // On écrit TOUT le fichier (header + section chiffrée + reste)
+    if (write(fd_out, file_ptr, total_file_size) == -1) {
+         close(fd_out);
+         munmap(file_ptr, total_file_size);
+         vprintf_exit(ERR_READ, err_msg, strerror(errno));
+    }
+
+    // 6. Nettoyage
+    close(fd_out);
+    munmap(file_ptr, total_file_size);
 }
-
