@@ -7,13 +7,21 @@ static void	check_PIE32(int fd, char **err_msg, Elf32_Ehdr *header)
 	size_t	size = header->e_phentsize * header->e_phnum;
 
 	Elf32_Phdr	*pgr_hdr = malloc(size);
+	if (!pgr_hdr)
+	{
+		close(fd);
+		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+	}
+
 	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
 	size_t rd = read(fd, pgr_hdr, size);
 	if (rd < size)
 	{
+		close(fd);
 		free(pgr_hdr);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
+
 	for (int i = 0; i < header->e_phnum; i++)
 	{
 		if (pgr_hdr[i].p_type == PT_INTERP)
@@ -21,13 +29,14 @@ static void	check_PIE32(int fd, char **err_msg, Elf32_Ehdr *header)
 	}
 	if (!is_executable)
 	{
+		close(fd);
 		free(pgr_hdr);
 		vprintf_exit(ERR_NEXEC, err_msg);
 	}
 }
 
 /// @brief allocate and return .text section data that need to be encrypted
-static encrypt_info *get_pgr_info(char **err_msg, Elf32_Ehdr *header, Elf32_Shdr	*sh_hdr)
+static void get_pgr_info(int fd, char **err_msg, encrypt_info **info, Elf32_Ehdr *header, Elf32_Shdr *sh_hdr)
 {
 	unsigned int j = 0;
 	for (int i = 0; i < header->e_phnum; i++)
@@ -37,55 +46,91 @@ static encrypt_info *get_pgr_info(char **err_msg, Elf32_Ehdr *header, Elf32_Shdr
 	}
 	if (!j)
 	{
+		close(fd);
 		free(sh_hdr);
 		vprintf_exit(ERR_NCODE, err_msg);
 	}
 
-	encrypt_info	*info = malloc(sizeof(encrypt_info) * (j + 1));
+	*info = malloc(sizeof(encrypt_info) * (j + 1));
+	if (!*info)
+	{
+		close(fd);
+		free(sh_hdr);
+		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+	}
 	j = 0;
 
 	for (int i = 0; i < header->e_phnum; i++)
 	{
 		if (sh_hdr[i].sh_type == SHT_PROGBITS && (sh_hdr[i].sh_flags & SHF_EXECINSTR))
 		{
-			info[j].file_pos = sh_hdr[i].sh_offset;
-			info[j].file_size = sh_hdr[i].sh_size;
-			info[j].mem_addr = sh_hdr[i].sh_addr;
+			(*info)[j].file_pos = sh_hdr[i].sh_offset;
+			(*info)[j].file_size = sh_hdr[i].sh_size;
+			(*info)[j].mem_addr = sh_hdr[i].sh_addr;
 			j++;
 		}
 	}
-	ft_bzero(&info[j], sizeof(encrypt_info));
+	ft_bzero(&(*info)[j], sizeof(encrypt_info));
 	free(sh_hdr);
-	return info;
+}
+
+static payload_info32	*get_payload_info(int fd, char **err_msg, Elf32_Ehdr *header, void *freedata)
+{
+	payload_info32 *headers = malloc(sizeof(payload_info32));
+	if (!headers)
+	{
+		close(fd);
+		free(freedata);
+		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+	}
+	//continue by getting Phdr and ehdr to payload info.
 }
 
 /// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
-static encrypt_info *parse_pgr32(int fd, char **err_msg, Elf32_Ehdr *header)
+static payload_info32 *parse_pgr32(int fd, encrypt_info **info, char **err_msg, Elf32_Ehdr *header)
 {
 	size_t	size = header->e_shentsize * header->e_shnum;
 
 	Elf32_Shdr	*pgr_hdr = malloc(size);
+	if (!pgr_hdr)
+	{
+		close(fd);
+		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+	}
+
 	lseek(fd, header->e_shoff, SEEK_SET); //set read location to e_phoff
 	size_t rd = read(fd, pgr_hdr, size);
 	if (rd < size)
 	{
+		close(fd);
 		free(pgr_hdr);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
-	return get_pgr_info(err_msg, header, pgr_hdr);
+
+	get_pgr_info(fd, err_msg, info, header, pgr_hdr);
+	return get_payload_info(fd, err_msg, header, info);
 }
 
-encrypt_info	*parse_elf32(int fd, char **err_msg)
+payload_info32	*parse_elf32(int fd, encrypt_info **info, char **err_msg)
 {
 	Elf32_Ehdr	header;
 	size_t rd = read(fd, &header, sizeof(Elf32_Ehdr));
 	if (rd < sizeof(Elf32_Ehdr))
+	{
+		close(fd);
 		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
+	}
 	if (header.e_type != ET_EXEC && header.e_type != ET_DYN) // check for executable or dynamic program
+	{
+		close(fd);
 		vprintf_exit(ERR_NEXEC, err_msg);
+	}
 	if (header.e_version == EV_NONE || header.e_version != EV_CURRENT)
+	{
+		close(fd);
 		vprintf_exit(ERR_ELFHDR, err_msg);
+	}
 	if (header.e_type == ET_DYN)
 		check_PIE32(fd, err_msg, &header);
-	return parse_pgr32(fd, err_msg, &header);
+	return parse_pgr32(fd, info, err_msg, &header);
 }

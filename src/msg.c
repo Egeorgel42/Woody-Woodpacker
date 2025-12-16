@@ -20,6 +20,8 @@ char	**init_msgs()
 	if (!err)
 		vprintf_exit(ERR_MAX, NULL);
 		
+	assign_msg(ERR_MMAP, "woody_packer: mmap err: %s\n", err);
+	assign_msg(ERR_STAT, "woody_packer: fstat err: %s\n", err);
 	assign_msg(ERR_NCODE, "woody_packer: No executable section found in file\n", err);
 	assign_msg(ERR_NELF, "woody_packer: Given parameter is not an elf file\n", err);
 	assign_msg(ERR_NEXEC, "woody_packer: Given file is not an executable\n", err);

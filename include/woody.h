@@ -7,6 +7,12 @@
 # include <errno.h>
 # include <string.h>
 # include <fcntl.h>
+# include <sys/mman.h> 
+# include <sys/stat.h> 
+# include <sys/types.h>
+
+# define PAYLOAD32 "Payload/payload32.bin"
+# define PAYLOAD64 "Payload/payload64.bin"
 
 /// @brief data necessary to locate position of program section and encrypt
 typedef struct t_encrypt_info {
@@ -15,8 +21,21 @@ typedef struct t_encrypt_info {
 	uint64_t	file_size; //size of program section in file
 } encrypt_info;
 
+typedef struct t_payload_info32 {
+	Elf32_Ehdr	main_header_replace;
+	Elf32_Phdr	insertion_header;
+} payload_info32;
+
+typedef struct t_payload_info64 {
+	Elf64_Ehdr	main_header_replace;
+	Elf64_Phdr	insertion_header;
+} payload_info64;
+
+
 /// @brief Error codes related to woody
 typedef enum t_err {
+	ERR_MMAP,
+	ERR_STAT,
 	ERR_NCODE,
 	ERR_NELF,
 	ERR_NEXEC,
@@ -34,14 +53,13 @@ char		**init_msgs();
 void		vprintf_exit(int err, char **err_msg, ...);
 void		free_msg(char **err_msg);
 
-encrypt_info	*parse_elf(int fd, char **err_msg);
-encrypt_info *parse_elf32(int fd, char **err_msg);
-encrypt_info *parse_elf64(int fd, char **err_msg);
+encrypt_info	*parse_elf(int fd, encrypt_info *info, char **err_msg);
+encrypt_info *parse_elf32(int fd, encrypt_info *info, char **err_msg);
+encrypt_info *parse_elf64(int fd, encrypt_info *info, char **err_msg);
 void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
 void 		encrypt_engine(encrypt_info *info, char *filename, char	**err_msg);
 void 		*map_file(char *filename, size_t *size, char **err_msg);
 void		generate_random_key(uint8_t *buffer, size_t size);
-
 
 
 #endif
