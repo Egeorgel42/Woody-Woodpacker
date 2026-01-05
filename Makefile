@@ -51,12 +51,14 @@ $(LIB):
 
 clean:
 	rm -f $(OBJ)
+	rm -f woody
 	for lib in $(LIBDIR); do \
 		make clean -C $$lib;\
 	done
 
 fclean:
 	rm -f $(OBJ)
+	rm -f woody
 	rm -f $(NAME)
 	rm -f $(PAYLOAD32) $(PAYLOAD64)
 	for lib in $(LIBDIR); do \

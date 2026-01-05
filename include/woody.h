@@ -21,6 +21,12 @@ typedef struct t_encrypt_info {
 	uint64_t	file_size; //size of program section in file
 } encrypt_info;
 
+typedef struct t_parsing_info {
+	encrypt_info	*encrypt;
+	void			*payload;
+	bool			is_64;
+} parsing_info;
+
 typedef struct t_payload_info32 {
 	Elf32_Ehdr	main_header_replace;
 	Elf32_Phdr	insertion_header;
@@ -53,13 +59,13 @@ char		**init_msgs();
 void		vprintf_exit(int err, char **err_msg, ...);
 void		free_msg(char **err_msg);
 
-encrypt_info	*parse_elf(int fd, encrypt_info *info, char **err_msg);
-encrypt_info *parse_elf32(int fd, encrypt_info *info, char **err_msg);
-encrypt_info *parse_elf64(int fd, encrypt_info *info, char **err_msg);
-void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-void 		encrypt_engine(encrypt_info *info, char *filename, char	**err_msg);
-void 		*map_file(char *filename, size_t *size, char **err_msg);
-void		generate_random_key(uint8_t *buffer, size_t size);
+void			parse_elf(int fd, parsing_info *info, char **err_msg);
+void			parse_elf32(int fd, parsing_info *info, char **err_msg);
+void			parse_elf64(int fd, parsing_info *info, char **err_msg);
+void 			xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
+void 			encrypt_engine(encrypt_info *info, char *filename, char **err_msg);
+void 			*map_file(char *filename, size_t *size, char **err_msg);
+void			generate_random_key(uint8_t *buffer, size_t size);
 
 
 #endif

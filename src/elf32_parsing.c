@@ -1,117 +1,153 @@
 #include "../include/woody.h"
 
-/// @brief check for type of program header, if no PT_INTERP are present, then that means this is not an executable but a dynamic library (.so)
-static void	check_PIE32(int fd, char **err_msg, Elf32_Ehdr *header)
+/// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
+static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
 {
-	bool	is_executable = false;
-	size_t	size = header->e_phentsize * header->e_phnum;
+	size_t	size = header->e_shentsize * header->e_shnum;
 
-	Elf32_Phdr	*pgr_hdr = malloc(size);
-	if (!pgr_hdr)
+	Elf32_Shdr	*s_hdr = malloc(size);
+	if (!s_hdr)
 	{
 		close(fd);
-		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
-	}
-
-	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
-	size_t rd = read(fd, pgr_hdr, size);
-	if (rd < size)
-	{
-		close(fd);
-		free(pgr_hdr);
+		if (info->encrypt)
+			free(info->encrypt);
+		if (info->payload)
+			free(info->payload);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
 
-	for (int i = 0; i < header->e_phnum; i++)
-	{
-		if (pgr_hdr[i].p_type == PT_INTERP)
-			is_executable = true;
-	}
-	if (!is_executable)
+	lseek(fd, header->e_shoff, SEEK_SET); //set read location to e_phoff
+	size_t rd = read(fd, s_hdr, size);
+	if (rd < size)
 	{
 		close(fd);
-		free(pgr_hdr);
-		vprintf_exit(ERR_NEXEC, err_msg);
+		if (info->encrypt)
+			free(info->encrypt);
+		if (info->payload)
+			free(info->payload);
+		free(s_hdr);
+		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
+	return s_hdr;
 }
 
 /// @brief allocate and return .text section data that need to be encrypted
-static void get_pgr_info(int fd, char **err_msg, encrypt_info **info, Elf32_Ehdr *header, Elf32_Shdr *sh_hdr)
+static void get_encrypt_info(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
 {
+	Elf32_Shdr *s_hdr = get_s_hdr(fd, err_msg, info, header);
 	unsigned int j = 0;
-	for (int i = 0; i < header->e_phnum; i++)
+	for (int i = 0; i < header->e_shnum; i++)
 	{
-		if (sh_hdr[i].sh_type == SHT_PROGBITS && (sh_hdr[i].sh_flags & SHF_EXECINSTR))
+		if (s_hdr[i].sh_type == SHT_PROGBITS && (s_hdr[i].sh_flags & SHF_EXECINSTR))
 			j++;
 	}
 	if (!j)
 	{
 		close(fd);
-		free(sh_hdr);
+		free(s_hdr);
+		if (info->payload)
+			free(info->payload);
 		vprintf_exit(ERR_NCODE, err_msg);
 	}
 
-	*info = malloc(sizeof(encrypt_info) * (j + 1));
-	if (!*info)
+	info->encrypt = malloc(sizeof(encrypt_info) * (j + 1));
+	if (!info->encrypt)
 	{
 		close(fd);
-		free(sh_hdr);
+		free(s_hdr);
+		if (info->payload)
+			free(info->payload);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
 	}
 	j = 0;
 
-	for (int i = 0; i < header->e_phnum; i++)
+	for (int i = 0; i < header->e_shnum; i++)
 	{
-		if (sh_hdr[i].sh_type == SHT_PROGBITS && (sh_hdr[i].sh_flags & SHF_EXECINSTR))
+		if (s_hdr[i].sh_type == SHT_PROGBITS && (s_hdr[i].sh_flags & SHF_EXECINSTR))
 		{
-			(*info)[j].file_pos = sh_hdr[i].sh_offset;
-			(*info)[j].file_size = sh_hdr[i].sh_size;
-			(*info)[j].mem_addr = sh_hdr[i].sh_addr;
+			info->encrypt[j].file_pos = s_hdr[i].sh_offset;
+			info->encrypt[j].file_size = s_hdr[i].sh_size;
+			info->encrypt[j].mem_addr = s_hdr[i].sh_addr;
 			j++;
 		}
 	}
-	ft_bzero(&(*info)[j], sizeof(encrypt_info));
-	free(sh_hdr);
+	ft_bzero(&info->encrypt[j], sizeof(encrypt_info));
+	free(s_hdr);
 }
 
-static payload_info32	*get_payload_info(int fd, char **err_msg, Elf32_Ehdr *header, void *freedata)
+static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
 {
-	payload_info32 *headers = malloc(sizeof(payload_info32));
-	if (!headers)
+	size_t	size = header->e_phentsize * header->e_phnum;
+
+	Elf32_Phdr	*p_hdr = malloc(size);
+	if (!p_hdr)
 	{
 		close(fd);
-		free(freedata);
+		if (info->encrypt)
+			free(info->encrypt);
+		if (info->payload)
+			free(info->payload);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
 	}
-	//continue by getting Phdr and ehdr to payload info.
-}
 
-/// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
-static payload_info32 *parse_pgr32(int fd, encrypt_info **info, char **err_msg, Elf32_Ehdr *header)
-{
-	size_t	size = header->e_shentsize * header->e_shnum;
-
-	Elf32_Shdr	*pgr_hdr = malloc(size);
-	if (!pgr_hdr)
-	{
-		close(fd);
-		vprintf_exit(ERR_READ, err_msg, strerror(errno));
-	}
-
-	lseek(fd, header->e_shoff, SEEK_SET); //set read location to e_phoff
-	size_t rd = read(fd, pgr_hdr, size);
+	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
+	size_t rd = read(fd, p_hdr, size);
 	if (rd < size)
 	{
 		close(fd);
-		free(pgr_hdr);
+		if (info->encrypt)
+			free(info->encrypt);
+		if (info->payload)
+			free(info->payload);
+		free(p_hdr);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
-
-	get_pgr_info(fd, err_msg, info, header, pgr_hdr);
-	return get_payload_info(fd, err_msg, header, info);
+	return p_hdr;
 }
 
-payload_info32	*parse_elf32(int fd, encrypt_info **info, char **err_msg)
+/// @brief gets specific phdr header to insert payload in, also checks for PIE to verify if file is an actual executable
+static void get_payload_info(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
+{
+	Elf32_Phdr *p_hdr = get_p_hdr(fd, err_msg, info, header);
+	info->payload = malloc(sizeof(payload_info32));
+	if (!info->payload)
+	{
+		close(fd);
+		free(p_hdr);
+		if (info->encrypt)
+			free(info->encrypt);
+		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+	}
+
+	((payload_info32 *) info->payload)->main_header_replace = *header;
+	bool	is_executable = false;
+	bool	copied_header = false;
+
+	for (int i = 0; i < header->e_phnum; i++)
+	{
+		if (p_hdr[i].p_type == PT_INTERP)
+			is_executable = true;
+		if (p_hdr[i].p_type == PT_LOAD && (p_hdr[i].p_flags & PF_W))
+		{
+			((payload_info32 *) info->payload)->insertion_header = p_hdr[i];
+			copied_header = true;
+		}
+	}
+
+	free(p_hdr);
+	if (!(is_executable && copied_header))
+	{
+		close(fd);
+		free(info->payload);
+		if (info->encrypt)
+			free(info->encrypt);
+		if (!is_executable)
+			vprintf_exit(ERR_NEXEC, err_msg);
+		vprintf_exit(ERR_ELFHDR, err_msg);
+	}
+}
+
+void	parse_elf32(int fd, parsing_info *info, char **err_msg)
 {
 	Elf32_Ehdr	header;
 	size_t rd = read(fd, &header, sizeof(Elf32_Ehdr));
@@ -130,7 +166,7 @@ payload_info32	*parse_elf32(int fd, encrypt_info **info, char **err_msg)
 		close(fd);
 		vprintf_exit(ERR_ELFHDR, err_msg);
 	}
-	if (header.e_type == ET_DYN)
-		check_PIE32(fd, err_msg, &header);
-	return parse_pgr32(fd, info, err_msg, &header);
+
+	get_encrypt_info(fd, err_msg, info, &header);
+	get_payload_info(fd, err_msg, info, &header);
 }

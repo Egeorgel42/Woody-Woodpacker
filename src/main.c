@@ -1,6 +1,5 @@
 #include "../include/woody.h"
 
-
 int main(int argc, char **argv)
 {
 	char	**err_msg = init_msgs();
@@ -9,11 +8,14 @@ int main(int argc, char **argv)
 	int fd = open(argv[1], O_RDWR);
 	if (fd == -1)
 		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
-	encrypt_info	**info;
-	*info = NULL;
-	void *payload_header = parse_elf(fd, info, err_msg);
+	parsing_info parsing;
+	parsing.encrypt = NULL;
+	parsing.payload = NULL;
+	parsing.is_64 = false;
+	parse_elf(fd, &parsing, err_msg);
+	free(parsing.payload);
 	close(fd);
-	encrypt_engine(info, argv[1], err_msg);
-	free(info);
+	encrypt_engine(parsing.encrypt, argv[1], err_msg);
+	free(parsing.encrypt);
 	free_msg(err_msg);
 }

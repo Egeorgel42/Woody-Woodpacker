@@ -12,7 +12,7 @@ void	parse_e_indent(unsigned char *e_ident, char **err_msg)
 		vprintf_exit(ERR_ELFHDR, err_msg);
 }
 
-void	*parse_elf(int fd, encrypt_info **info, char **err_msg)
+void	parse_elf(int fd, parsing_info *info, char **err_msg)
 {
 	unsigned char	e_ident[EI_NIDENT];
 	unsigned char	check_ver[5] = {0x7F, 'E', 'L', 'F', 1}; //elf file always starts with 0x7F, E, L, F, last byte corresponds to 64 or 32
@@ -35,5 +35,4 @@ void	*parse_elf(int fd, encrypt_info **info, char **err_msg)
 		return parse_elf64(fd, info, err_msg);
 
 	vprintf_exit(ERR_NELF, err_msg);
-	return NULL;
 }
