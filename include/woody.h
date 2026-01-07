@@ -63,7 +63,7 @@ void			parse_elf(int fd, parsing_info *info, char **err_msg);
 void			parse_elf32(int fd, parsing_info *info, char **err_msg);
 void			parse_elf64(int fd, parsing_info *info, char **err_msg);
 void 			xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-void 			encrypt_engine(encrypt_info *info, char *filename, char **err_msg);
+void 			*encrypt_engine(encrypt_info *info, char *filename, char **err_msg);
 void 			*map_file(char *filename, size_t *size, char **err_msg);
 void			generate_random_key(uint8_t *buffer, size_t size);
 
