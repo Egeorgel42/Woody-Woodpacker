@@ -3,6 +3,8 @@
 int main(int argc, char **argv)
 {
 	char	**err_msg = init_msgs();
+    size_t total_file_size;
+
 	if (argc == 1)
 		vprintf_exit(ERR_HELP, err_msg);
 	int fd = open(argv[1], O_RDWR);
@@ -15,7 +17,7 @@ int main(int argc, char **argv)
 	parse_elf(fd, &parsing, err_msg);
 	free(parsing.payload);
 	close(fd);
-	encrypt_engine(parsing.encrypt, argv[1], err_msg);
+	encrypt_engine(parsing.encrypt, argv[1], err_msg, &total_file_size);
 	free(parsing.encrypt);
 	free_msg(err_msg);
 }

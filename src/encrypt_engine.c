@@ -52,11 +52,10 @@ void *map_file(char *filename, size_t *total_size, char **err_msg)
     return ptr;
 }
 
-void *encrypt_engine(encrypt_info *info, char *filename, char **err_msg)
+void *encrypt_engine(encrypt_info *info, char *filename, char **err_msg, size_t *total_file_size)
 {
     // Map file in RAM
-    size_t total_file_size;
-    void *file_ptr = map_file(filename, &total_file_size, err_msg);
+    void *file_ptr = map_file(filename, total_file_size, err_msg);
 
     // randomly generate the encryption key
     uint8_t key_buffer[KEY_SIZE];
