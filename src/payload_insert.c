@@ -41,13 +41,69 @@ static void	*get_payload(parsing_info *info, size_t *payload_size, char *file_bu
 	return ptr;
 }
 
+static void *patch_payload(parsing_info *info, void *raw_payload, size_t size, char **err_msg)
+{
+	// create an editable copy of payload
+	char *patched = malloc(size);
+	if (!patched) {
+		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+	}
+	ft_memcpy(patched, raw_payload, size);
+
+	if (info->is_64)
+	{
+		// Offsets calculated from the end of asm 64 bits
+		// ASM structure : [ ...Code... | key (16) | Start(8) | Size (8) | Old_EP (8) }
+		size_t off_key 		= size - 40;
+		size_t off_start 	= size - 24;
+		size_t off_size 	= size - 16;
+		size_t off_ep 		= size - 8;
+
+		ft_memcpy(patched + off_key, info->key, 16); // Key (16 bits)
+		ft_memcpy(patched + off_start, &info->encrypt->mem_addr, 8) // Virtual Address .text
+		ft_memcpy(patched + off_size, &info->encrypt->file_size, 8) // .text Size
+		ft_memcpy(patched + off_ep, &info->encrypt->old_entry_point, 8) // old entry point
+	}
+	else //32 bits
+	{
+		// ASM structure: [ ...Code... | Key (16) | Start (4) | Size (4) | Old_EP (4) ]
+        size_t off_key   = size - 28;
+        size_t off_start = size - 12;
+        size_t off_size  = size - 8;
+        size_t off_ep    = size - 4;
+
+        // convert in 32 bits
+        uint32_t start32 = (uint32_t)info->encrypt->mem_addr;
+        uint32_t size32  = (uint32_t)info->encrypt->file_size;
+        uint32_t ep32    = (uint32_t)info->encrypt->old_entry_point;
+
+        ft_memcpy(patched + off_key, info->key, 16);               // key stays 16 bits
+        ft_memcpy(patched + off_start, &start32, 4);
+        ft_memcpy(patched + off_size, &size32, 4);
+        ft_memcpy(patched + off_ep, &ep32, 4);
+	}
+	return (patched);
+}
+
+
 void	payload_insert(parsing_info *info, char *file_buf, char *exec_path, char **err_msg)
 {
-	size_t	payload_size;
-	void *payload = get_payload(info, &payload_size, file_buf, exec_path, err_msg);
-	if (info->is_64)
-		payload_insert64(info, file_buf, payload, payload_size, err_msg);
-	else
-		payload_insert32(info, file_buf, payload, payload_size, err_msg);
+    size_t raw_size;
+    
+    // Get raw payload (readonly)
+    void *raw_payload = get_payload(info, &raw_size, file_buf, exec_path, err_msg);
 
+    // Create final payload with the data inside (malloc'd ptr)
+    void *final_payload = patch_payload(info, raw_payload, raw_size, err_msg);
+
+    // free raw_payload
+    munmap(raw_payload, raw_size);
+
+    // call injection function
+    if (info->is_64)
+        inject_elf64(info, file_buf, final_payload, raw_size, err_msg);
+    else
+        inject_elf32(info, file_buf, final_payload, raw_size, err_msg);
+
+    free(final_payload);
 }

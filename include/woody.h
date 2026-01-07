@@ -19,6 +19,7 @@ typedef struct t_encrypt_info {
 	uint64_t	file_pos; //position of program section in file
 	uint64_t	mem_addr; //position of program section in memory, litteral/offset if dynamic allocation or not
 	uint64_t	file_size; //size of program section in file
+	uint64_t 	old_entry_point;
 } encrypt_info;
 
 typedef struct t_parsing_info {
