@@ -23,6 +23,7 @@ typedef struct t_encrypt_info {
 } encrypt_info;
 
 typedef struct t_parsing_info {
+	uint8_t 		key[16];
 	encrypt_info	*encrypt;
 	void			*payload;
 	bool			is_64;

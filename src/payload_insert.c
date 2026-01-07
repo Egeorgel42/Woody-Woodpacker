@@ -79,9 +79,9 @@ static void *patch_payload(parsing_info *info, void *raw_payload, size_t size, c
 		size_t off_ep 		= size - 8;
 
 		ft_memcpy(patched + off_key, info->key, 16); // Key (16 bits)
-		ft_memcpy(patched + off_start, &info->encrypt->mem_addr, 8) // Virtual Address .text
-		ft_memcpy(patched + off_size, &info->encrypt->file_size, 8) // .text Size
-		ft_memcpy(patched + off_ep, &info->encrypt->old_entry_point, 8) // old entry point
+		ft_memcpy(patched + off_start, &info->encrypt->mem_addr, 8); // Virtual Address .text
+		ft_memcpy(patched + off_size, &info->encrypt->file_size, 8); // .text Size
+		ft_memcpy(patched + off_ep, &info->encrypt->old_entry_point, 8); // old entry point
 	}
 	else //32 bits
 	{
@@ -120,9 +120,9 @@ void	payload_insert(parsing_info *info, char *file_buf, char *exec_path, char **
 
     // call injection function
     if (info->is_64)
-        inject_elf64(info, file_buf, final_payload, raw_size, err_msg);
+        payload_insert64(info, file_buf, final_payload, raw_size, err_msg);
     else
-        inject_elf32(info, file_buf, final_payload, raw_size, err_msg);
+        payload_insert32(info, file_buf, final_payload, raw_size, err_msg);
 
     free(final_payload);
 }
