@@ -19,6 +19,7 @@ typedef struct t_encrypt_info {
 	uint64_t	file_pos; //position of program section in file
 	uint64_t	mem_addr; //position of program section in memory, litteral/offset if dynamic allocation or not
 	uint64_t	file_size; //size of program section in file
+	uint64_t 	old_entry_point;
 } encrypt_info;
 
 typedef struct t_parsing_info {
@@ -61,6 +62,7 @@ char	**init_msgs();
 void	vprintf_exit(int err, char **err_msg, ...);
 void	free_msg(char **err_msg);
 
+
 void	freeall(unsigned int argsnbr, ...);
 
 void	parse_elf(int fd, parsing_info *info, char **err_msg);
@@ -71,7 +73,7 @@ void	payload_insert32(parsing_info *info, void *file_buf, size_t file_size, void
 void	payload_insert64(parsing_info *info, char *file_buf, char *payload, size_t payload_size, char **err_msg);
 void	create_woody(void *file_ptr, size_t total_file_size, char **err_msg);
 void 	xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-void 	encrypt_engine(encrypt_info *info, char *filename, char **err_msg);
+void 	*encrypt_engine(encrypt_info *info, char *filename, char **err_msg);
 void 	*map_file(char *filename, size_t *size, char **err_msg);
 void	generate_random_key(uint8_t *buffer, size_t size);
 

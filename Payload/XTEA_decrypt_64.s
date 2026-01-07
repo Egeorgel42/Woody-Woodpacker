@@ -1,14 +1,13 @@
 ; -----------------------------------------------------------------------------
-; XTEA Decryption Routine (x64)
-; RDI = encrypted code address (v)
-; RSI = encryption key address (k)
+; GLOBAL PAYLOAD
 ; -----------------------------------------------------------------------------
 
-global xtea_decrypt_block
+section .text
+	global _start
 
-xtea_decrypt_block:
+_start:
 	; Save Context (original program state)
-	pushfq                  ; Save EFLAGS (condition codes: Zero Flag, etc..)
+	pushfq
 	push rax
 	push rbx
 	push rcx
@@ -17,9 +16,60 @@ xtea_decrypt_block:
 	push r9
 	push r10
 	push r11
-	push r12                ; Using r12 as a temporary register
-	push rsi                ; We need rsi for Key addressing
-	push rdi                ; We need rdi for Data addressing
+	push r12
+	push rsi
+	push rdi
+
+	; Print WOODY Message (Write syscall)
+	mov rax, 1                  ; RAX = 1 (syscall write)
+	mov rdi, 1                  ; RDI = 1 (File Descriptor for STDOUT)
+	lea rsi, [rel msg_woody]    ; RSI = buffer add(relative to current instruction)
+	mov rdx, 14                 ; RDX = Length (13 char + 1 \n)
+	syscall                     ; kernel call
+
+	; INIT DECRYPTION
+	lea rsi, [rel ckey]         ; RSI points to the key
+	lea rdi, [rel start_txt]    ; RDI points to the start of ciphered zone
+	
+	mov r15, [rel txt_size]     ; R15 contains the txt size (We use R15 because RCX is used in XTEA)
+	shr r15, 3 				    ; R15 / 8 = number of blocks to uncipher
+
+; da big loop
+.big_loop:
+	; calling xtea routine
+	call xtea_decrypt_block
+
+	add rdi, 8 				; We go to next block (+8 bytes)
+	dec r15 				; decrement block counter (R15)
+	jnz .big_loop 			; if not done yet, start again
+
+	; 4. Restore Context (LIFO order - Inverse of Push)
+	; We restore everything exactly as it was before jumping back to the host
+	pop rdi
+	pop rsi
+	pop r12
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rdx
+	pop rcx
+	pop rbx
+	pop rax
+	popfq
+
+	; 5. JUMP TO ORIGINAL ENTRY POINT
+	jmp [rel old_entry_point]
+
+
+; -----------------------------------------------------------------------------
+; XTEA Decryption Routine (x64)
+; RDI = encrypted code address (v)
+; RSI = encryption key address (k)
+; -----------------------------------------------------------------------------
+global xtea_decrypt_block
+
+xtea_decrypt_block:
 
 	; Setup variables
 	; v0 is stored in EAX, v1 in EBX (We use 32bits registers since XTEA is working on 32bits packages)
@@ -92,17 +142,16 @@ xtea_decrypt_block:
 	mov [rdi], eax 			; write decrypted v0 back to memory
 	mov [rdi + 4], ebx 		; write decrypted v1 back to memory
 	
-	; Restore context (last in, first out)
-	pop rdi
-	pop rsi
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
-    popfq                   ; Restore flags
-    ret
+	; RET: We return to the caller (_start loop)
+	; Note: Context restoration (POP) is handled in _start now
+	ret
+
+; -----------------------------------------------------------------------------
+; DATA placeholders (filled by the C)
+; -----------------------------------------------------------------------------
+align 8
+msg_woody:       db "....WOODY....", 0xA, 0
+ckey:            times 16 db 0      
+start_txt:       dq 0               
+txt_size:        dq 0               
+old_entry_point: dq 0
