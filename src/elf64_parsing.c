@@ -130,6 +130,7 @@ static void get_payload_info(int fd, char **err_msg, parsing_info *info, Elf64_E
 		if (p_hdr[i].p_type == PT_LOAD && (p_hdr[i].p_flags & PF_W))
 		{
 			((payload_info64 *) info->payload)->insertion_header = p_hdr[i];
+			((payload_info64 *) info->payload)->insert_hdr_pos = ((i + 1) * header->e_phentsize) + header->e_phoff;
 			copied_header = true;
 		}
 	}

@@ -1,5 +1,24 @@
 #include "woody.h"
 
+void create_woody(void *file_ptr, size_t total_file_size, char **err_msg)
+{
+    // create woody file
+    int fd_out = open("woody", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+    if (fd_out == -1) {
+        munmap(file_ptr, total_file_size); // free the mapped file in ram
+        vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
+    }
+
+    // write content
+    if (write(fd_out, file_ptr, total_file_size) == -1) {
+         close(fd_out);
+         munmap(file_ptr, total_file_size);
+         vprintf_exit(ERR_READ, err_msg, strerror(errno));
+    }
+
+    close(fd_out);
+}
+
 static void	*get_payload(parsing_info *info, size_t *payload_size, char *file_buf, char *exec_path, char **err_msg)
 {
 	char *str;
