@@ -122,7 +122,7 @@ void	payload_insert(parsing_info *info, char *file_buf, char *exec_path, char **
     if (info->is_64)
         payload_insert64(info, file_buf, final_payload, raw_size, err_msg);
     else
-        payload_insert32(info, file_buf, final_payload, raw_size, err_msg);
+        //payload_insert32(info, file_buf, final_payload, raw_size, err_msg);
 
     free(final_payload);
 }

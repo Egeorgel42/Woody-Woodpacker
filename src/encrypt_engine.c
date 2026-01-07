@@ -26,7 +26,6 @@ void generate_random_key(uint8_t *buffer, size_t size)
 	close(fd);
 }
 
-
 void *map_file(char *filename, size_t *total_size, char **err_msg)
 {
     int fd = open(filename, O_RDWR);

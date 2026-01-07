@@ -1,6 +1,6 @@
 #include "woody.h"
 
-void	payload_modify32(parsing_info *info, size_t payload_size, char **err_msg)
+void	payload_modify32(parsing_info *info, size_t payload_size)
 {
 	((payload_info32 *) info->payload)->main_header_replace.e_shoff += payload_size;
 	((payload_info32 *) info->payload)->main_header_replace.e_entry = ((payload_info32 *) info->payload)->insertion_header.p_vaddr + ((payload_info32 *) info->payload)->insertion_header.p_memsz;
@@ -10,7 +10,7 @@ void	payload_modify32(parsing_info *info, size_t payload_size, char **err_msg)
 
 void	payload_insert32(parsing_info *info, void *file_buf, size_t file_size, void *payload, size_t payload_size, char **err_msg)
 {
-	payload_modify32(info, payload_size, err_msg);
+	payload_modify32(info, payload_size);
 	size_t file_pos = ((payload_info32 *) info->payload)->main_header_replace.e_entry - ((payload_info32 *) info->payload)->insertion_header.p_vaddr + ((payload_info32 *) info->payload)->insertion_header.p_offset;
 	void *new_file = malloc(file_size + payload_size);
 	if (!new_file)
