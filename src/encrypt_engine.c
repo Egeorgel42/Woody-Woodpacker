@@ -72,7 +72,7 @@ void create_woody(void *file_ptr, size_t total_file_size, char **err_msg)
     close(fd_out);
 }
 
-void encrypt_engine(encrypt_info *info, char *filename, char **err_msg)
+void *encrypt_engine(encrypt_info *info, char *filename, char **err_msg)
 {
     // Map file in RAM
     size_t total_file_size;
@@ -107,6 +107,7 @@ void encrypt_engine(encrypt_info *info, char *filename, char **err_msg)
         xtea_encipher(32, &code_ptr[i * 2], xtea_key);
     }
 
-    create_woody(file_ptr, total_file_size, err_msg);
-    munmap(file_ptr, total_file_size);
+    return (file_ptr);
+    // create_woody(file_ptr, total_file_size, err_msg);
+    // munmap(file_ptr, total_file_size);
 }
