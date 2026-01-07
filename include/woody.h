@@ -71,7 +71,7 @@ void	payload_insert(parsing_info *info, char *file_buf, char *exec_path, char **
 void	payload_insert32(parsing_info *info, char *file_buf, char *payload, size_t payload_size, char **err_msg);
 void	payload_insert64(parsing_info *info, char *file_buf, char *payload, size_t payload_size, char **err_msg);
 void 	xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-void 	*encrypt_engine(encrypt_info *info, char *filename, char **err_msg);
+void 	*encrypt_engine(encrypt_info *info, char *filename, char **err_msg, size_t *total_file_size);
 void 	*map_file(char *filename, size_t *size, char **err_msg);
 void	generate_random_key(uint8_t *buffer, size_t size);
 
