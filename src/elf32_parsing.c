@@ -1,4 +1,4 @@
-#include "../include/woody.h"
+#include "woody.h"
 
 /// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
 static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)

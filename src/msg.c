@@ -1,4 +1,4 @@
-#include "../include/woody.h"
+#include "woody.h"
 
 void	free_msg(char **err_msg)
 {

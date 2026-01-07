@@ -1,4 +1,4 @@
-#include "../include/woody.h"
+#include "woody.h"
 #include <sys/mman.h> 
 #include <sys/stat.h> 
 #include <sys/types.h>
