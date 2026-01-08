@@ -43,6 +43,7 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf32_Ehdr *header, cha
 			break;
 		}
 	}
+	free(buffer);
 	if (!res)
 	{
 		close(fd);
