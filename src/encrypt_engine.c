@@ -60,16 +60,15 @@ mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg)
     mmap_alloc executable = map_file(info, filename, err_msg);
 
     // randomly generate the encryption key
-    uint8_t key_buffer[KEY_SIZE];
-    generate_random_key(key_buffer, KEY_SIZE);
+    generate_random_key(info->encrypt.key, KEY_SIZE);
 
     printf("key_value: ");
     for (int i = 0; i < KEY_SIZE; i++) {
-        printf("%02X", key_buffer[i]);
+        printf("%02X", info->encrypt.key[i]);
     }
     printf("\n");
     
-    uint32_t *xtea_key = (uint32_t *)key_buffer;
+    uint32_t *xtea_key = (uint32_t *)info->encrypt.key;
 
     // Calculate pointer to the data to encrypt, using
     // the file start + file offset

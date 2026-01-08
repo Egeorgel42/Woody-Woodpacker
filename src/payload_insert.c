@@ -13,10 +13,11 @@ void create_woody(void *file_ptr, size_t total_file_size, char **err_msg)
     if (write(fd_out, file_ptr, total_file_size) == -1) {
 		close(fd_out);
 		free(file_ptr);
-		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+		vprintf_exit(ERR_WRITE, err_msg, strerror(errno));
     }
 
     close(fd_out);
+	free(file_ptr);
 }
 
 static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg)
@@ -36,7 +37,7 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
 		free(info->payload);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
 	}
-	int fd = open(str, O_RDONLY);
+	int fd = open(str, O_RDWR);
 	free(str);
     if (fd == -1) {
 		munmap(executable->addr, executable->size);
@@ -76,10 +77,12 @@ static void	patch_payload(parsing_info *info, mmap_alloc payload)
 		size_t off_size 	= payload.size - 16;
 		size_t off_ep 		= payload.size - 8;
 
+        uint64_t ep64    = (uint32_t)((payload_info64 *) info->payload)->main_header_replace.e_entry;
+
 		ft_memcpy(payload.addr + off_key, info->encrypt.key, 16); // Key (16 bits)
 		ft_memcpy(payload.addr + off_start, &info->encrypt.mem_addr, 8); // Virtual Address .text
 		ft_memcpy(payload.addr + off_size, &info->encrypt.file_size, 8); // .text Size
-		ft_memcpy(payload.addr + off_ep, &info->encrypt.old_entry_point, 8); // old entry point
+		ft_memcpy(payload.addr + off_ep, &ep64, 8); // old entry point
 	}
 	else //32 bits
 	{
@@ -92,7 +95,7 @@ static void	patch_payload(parsing_info *info, mmap_alloc payload)
         // convert in 32 bits
         uint32_t start32 = (uint32_t)info->encrypt.mem_addr;
         uint32_t size32  = (uint32_t)info->encrypt.file_size;
-        uint32_t ep32    = (uint32_t)info->encrypt.old_entry_point;
+        uint32_t ep32    = (uint32_t)((payload_info32 *) info->payload)->main_header_replace.e_entry;
 
         ft_memcpy(payload.addr + off_key, info->encrypt.key, 16);               // key stays 16 bits
         ft_memcpy(payload.addr + off_start, &start32, 4);
