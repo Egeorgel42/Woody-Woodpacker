@@ -77,12 +77,10 @@ static void	patch_payload(parsing_info *info, mmap_alloc payload)
 		size_t off_size 	= payload.size - 16;
 		size_t off_ep 		= payload.size - 8;
 
-        uint64_t ep64    = (uint32_t)((payload_info64 *) info->payload)->main_header_replace.e_entry;
-
 		ft_memcpy(payload.addr + off_key, info->encrypt.key, 16); // Key (16 bits)
 		ft_memcpy(payload.addr + off_start, &info->encrypt.mem_addr, 8); // Virtual Address .text
 		ft_memcpy(payload.addr + off_size, &info->encrypt.file_size, 8); // .text Size
-		ft_memcpy(payload.addr + off_ep, &ep64, 8); // old entry point
+		ft_memcpy(payload.addr + off_ep, &((payload_info64 *) info->payload)->main_header_replace.e_entry, 8); // old entry point
 	}
 	else //32 bits
 	{
@@ -95,12 +93,11 @@ static void	patch_payload(parsing_info *info, mmap_alloc payload)
         // convert in 32 bits
         uint32_t start32 = (uint32_t)info->encrypt.mem_addr;
         uint32_t size32  = (uint32_t)info->encrypt.file_size;
-        uint32_t ep32    = (uint32_t)((payload_info32 *) info->payload)->main_header_replace.e_entry;
 
         ft_memcpy(payload.addr + off_key, info->encrypt.key, 16);               // key stays 16 bits
         ft_memcpy(payload.addr + off_start, &start32, 4);
         ft_memcpy(payload.addr + off_size, &size32, 4);
-        ft_memcpy(payload.addr + off_ep, &ep32, 4);
+        ft_memcpy(payload.addr + off_ep, &((payload_info32 *) info->payload)->main_header_replace.e_entry, 4);
 	}
 }
 
