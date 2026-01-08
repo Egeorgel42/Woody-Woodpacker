@@ -19,7 +19,6 @@ SRC = src/main.c \
 	src/elf_parsing.c \
 	src/elf32_parsing.c \
 	src/elf64_parsing.c \
-	src/utils.c \
 	src/payload_insert.c \
 	src/payload_insert32.c \
 	src/payload_insert64.c \

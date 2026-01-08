@@ -9,8 +9,6 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (!s_hdr)
 	{
 		close(fd);
-		if (info->encrypt)
-			free(info->encrypt);
 		if (info->payload)
 			free(info->payload);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
@@ -21,8 +19,6 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (rd < size)
 	{
 		close(fd);
-		if (info->encrypt)
-			free(info->encrypt);
 		if (info->payload)
 			free(info->payload);
 		free(s_hdr);
@@ -32,16 +28,22 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 }
 
 /// @brief allocate and return .text section data that need to be encrypted
-static void get_encrypt_info(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
+static void get_encrypt_info(int fd, parsing_info *info, Elf32_Ehdr *header, char **err_msg)
 {
+	Elf32_Shdr *res = NULL;
 	Elf32_Shdr *s_hdr = get_s_hdr(fd, err_msg, info, header);
-	unsigned int j = 0;
+	char *buffer = malloc(s_hdr[header->e_shstrndx].sh_size);
+	lseek(fd, s_hdr[header->e_shstrndx].sh_offset, SEEK_SET);
+	read(fd, buffer, s_hdr[header->e_shstrndx].sh_size);
 	for (int i = 0; i < header->e_shnum; i++)
 	{
-		if (s_hdr[i].sh_type == SHT_PROGBITS && (s_hdr[i].sh_flags & SHF_EXECINSTR))
-			j++;
+		if (!ft_strcmp(buffer + s_hdr[i].sh_name, ".text"))
+		{
+			res = s_hdr;
+			break;
+		}
 	}
-	if (!j)
+	if (!res)
 	{
 		close(fd);
 		free(s_hdr);
@@ -49,29 +51,9 @@ static void get_encrypt_info(int fd, char **err_msg, parsing_info *info, Elf32_E
 			free(info->payload);
 		vprintf_exit(ERR_NCODE, err_msg);
 	}
-
-	info->encrypt = malloc(sizeof(encrypt_info) * (j + 1));
-	if (!info->encrypt)
-	{
-		close(fd);
-		free(s_hdr);
-		if (info->payload)
-			free(info->payload);
-		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
-	}
-	j = 0;
-
-	for (int i = 0; i < header->e_shnum; i++)
-	{
-		if (s_hdr[i].sh_type == SHT_PROGBITS && (s_hdr[i].sh_flags & SHF_EXECINSTR))
-		{
-			info->encrypt[j].file_pos = s_hdr[i].sh_offset;
-			info->encrypt[j].file_size = s_hdr[i].sh_size;
-			info->encrypt[j].mem_addr = s_hdr[i].sh_addr;
-			j++;
-		}
-	}
-	ft_bzero(&info->encrypt[j], sizeof(encrypt_info));
+	info->encrypt.file_pos = res->sh_offset;
+	info->encrypt.file_size = res->sh_size;
+	info->encrypt.mem_addr = res->sh_addr;
 	free(s_hdr);
 }
 
@@ -83,8 +65,6 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (!p_hdr)
 	{
 		close(fd);
-		if (info->encrypt)
-			free(info->encrypt);
 		if (info->payload)
 			free(info->payload);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
@@ -95,8 +75,6 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (rd < size)
 	{
 		close(fd);
-		if (info->encrypt)
-			free(info->encrypt);
 		if (info->payload)
 			free(info->payload);
 		free(p_hdr);
@@ -106,7 +84,7 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 }
 
 /// @brief gets specific phdr header to insert payload in, also checks for PIE to verify if file is an actual executable
-static void get_payload_info(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
+static void get_payload_info(int fd, parsing_info *info, Elf32_Ehdr *header, char **err_msg)
 {
 	Elf32_Phdr *p_hdr = get_p_hdr(fd, err_msg, info, header);
 	info->payload = malloc(sizeof(payload_info32));
@@ -114,8 +92,6 @@ static void get_payload_info(int fd, char **err_msg, parsing_info *info, Elf32_E
 	{
 		close(fd);
 		free(p_hdr);
-		if (info->encrypt)
-			free(info->encrypt);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
 	}
 
@@ -140,16 +116,15 @@ static void get_payload_info(int fd, char **err_msg, parsing_info *info, Elf32_E
 	{
 		close(fd);
 		free(info->payload);
-		if (info->encrypt)
-			free(info->encrypt);
 		if (!is_executable)
 			vprintf_exit(ERR_NEXEC, err_msg);
 		vprintf_exit(ERR_ELFHDR, err_msg);
 	}
 }
 
-void	parse_elf32(int fd, parsing_info *info, char **err_msg)
+parsing_info	parse_elf32(int fd, char **err_msg)
 {
+	parsing_info info;
 	Elf32_Ehdr	header;
 	size_t rd = read(fd, &header, sizeof(Elf32_Ehdr));
 	if (rd < sizeof(Elf32_Ehdr))
@@ -167,7 +142,10 @@ void	parse_elf32(int fd, parsing_info *info, char **err_msg)
 		close(fd);
 		vprintf_exit(ERR_ELFHDR, err_msg);
 	}
+	info.is_64 = false;
+	info.payload = NULL;
 
-	get_encrypt_info(fd, err_msg, info, &header);
-	get_payload_info(fd, err_msg, info, &header);
+	get_encrypt_info(fd, &info, &header, err_msg);
+	get_payload_info(fd, &info, &header, err_msg);
+	return info;
 }

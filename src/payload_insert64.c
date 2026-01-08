@@ -1,11 +1,32 @@
 #include "woody.h"
 
-
-void	payload_insert64(parsing_info *info, char *file_buf, char *payload, size_t payload_size, char **err_msg)
+void	payload_modify64(parsing_info *info, size_t payload_size)
 {
-	(void)info;
-	(void)file_buf;
-	(void)payload;
-	(void)payload_size;
-	(void)err_msg;
+	((payload_info64 *) info->payload)->main_header_replace.e_shoff += payload_size;
+	((payload_info64 *) info->payload)->main_header_replace.e_entry = ((payload_info64 *) info->payload)->insertion_header.p_vaddr + ((payload_info64 *) info->payload)->insertion_header.p_memsz;
+	((payload_info64 *) info->payload)->insertion_header.p_filesz += payload_size;
+	((payload_info64 *) info->payload)->insertion_header.p_memsz += payload_size;
+}
+
+void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
+{
+	payload_modify64(info, payload->size);
+	size_t file_pos = ((payload_info64 *) info->payload)->main_header_replace.e_entry - ((payload_info64 *) info->payload)->insertion_header.p_vaddr + ((payload_info64 *) info->payload)->insertion_header.p_offset;
+	void *new_file = malloc(executable->size + payload->size);
+	if (!new_file)
+	{
+		munmap(executable->addr, executable->size);
+		munmap(payload->addr, payload->size);
+		free(info->payload);
+		vprintf_exit(ERR_MALLOC, err_msg);
+	}
+	ft_memcpy(executable->addr, &((payload_info64 *) info->payload)->main_header_replace, sizeof(Elf64_Ehdr));
+	ft_memcpy(executable->addr + ((payload_info64 *) info->payload)->insert_hdr_pos, &((payload_info64 *) info->payload)->insertion_header, sizeof(Elf64_Phdr));
+	ft_memcpy(new_file, executable->addr, file_pos);
+	ft_memcpy(new_file + file_pos, payload->addr, payload->size);
+	ft_memcpy(new_file + file_pos + payload->size, executable->addr + file_pos, executable->size - file_pos);
+	munmap(executable->addr, executable->size);
+	munmap(payload->addr, payload->size);
+	free(info->payload);
+	create_woody(new_file, executable->size + payload->size, err_msg);
 }

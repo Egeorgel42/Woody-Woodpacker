@@ -14,17 +14,22 @@
 # define PAYLOAD32 "Payload/payload32.bin"
 # define PAYLOAD64 "Payload/payload64.bin"
 
+typedef struct t_mmap_alloc {
+	void	*addr;
+	size_t	size;
+} mmap_alloc;
+
 /// @brief data necessary to locate position of program section and encrypt
 typedef struct t_encrypt_info {
 	uint64_t	file_pos; //position of program section in file
 	uint64_t	mem_addr; //position of program section in memory, litteral/offset if dynamic allocation or not
 	uint64_t	file_size; //size of program section in file
 	uint64_t 	old_entry_point;
+	uint8_t 	key[16];
 } encrypt_info;
 
 typedef struct t_parsing_info {
-	uint8_t 		key[16];
-	encrypt_info	*encrypt;
+	encrypt_info	encrypt;
 	void			*payload;
 	bool			is_64;
 } parsing_info;
@@ -55,6 +60,7 @@ typedef enum t_err {
 	ERR_OPEN,
 	ERR_HELP,
 	ERR_READ,
+	ERR_WRITE,
 	ERR_MALLOC,
 	ERR_MAX
 } msg_err;
@@ -63,20 +69,17 @@ char	**init_msgs();
 void	vprintf_exit(int err, char **err_msg, ...);
 void	free_msg(char **err_msg);
 
+parsing_info	parse_elf(int fd, char **err_msg);
+parsing_info	parse_elf32(int fd, char **err_msg);
+parsing_info	parse_elf64(int fd, char **err_msg);
 
-void	freeall(unsigned int argsnbr, ...);
+void	payload_insert(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg);
+void	payload_insert32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
+void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
 
-void	parse_elf(int fd, parsing_info *info, char **err_msg);
-void	parse_elf32(int fd, parsing_info *info, char **err_msg);
-void	parse_elf64(int fd, parsing_info *info, char **err_msg);
-void	payload_insert(parsing_info *info, char *file_buf, char *exec_path, char **err_msg);
-void	payload_insert32(parsing_info *info, void *file_buf, size_t file_size, void *payload, size_t payload_size, char **err_msg);
-void	payload_insert64(parsing_info *info, char *file_buf, char *payload, size_t payload_size, char **err_msg);
-void	create_woody(void *file_ptr, size_t total_file_size, char **err_msg);
-void 	xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-void 	*encrypt_engine(encrypt_info *info, char *filename, char **err_msg, size_t *total_file_size);
-void 	*map_file(char *filename, size_t *size, char **err_msg);
-void	generate_random_key(uint8_t *buffer, size_t size);
+void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
+mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg);
+void 		create_woody(void *file_ptr, size_t total_file_size, char **err_msg);
 
 
 #endif

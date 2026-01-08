@@ -29,8 +29,9 @@ char	**init_msgs()
 	assign_msg(ERR_ELFHDR, "woody_packer: Invalid Elf executable header\n", err);
 	assign_msg(ERR_ENDIAN, "woody_packer: Big endian executables aren't supported\n", err);
 	assign_msg(ERR_HELP, "woody_packer: Invalid parameter: path to elf executable required\n", err);
-	assign_msg(ERR_READ, "woody_packer: Error during read of executable: %s\n", err);
-	assign_msg(ERR_OPEN, "woody_packer: Error during open of executable: %s\n", err);
+	assign_msg(ERR_READ, "woody_packer: Error during read operation: %s\n", err);
+	assign_msg(ERR_WRITE, "woody_packer: Error during write operation: %s\n", err);
+	assign_msg(ERR_OPEN, "woody_packer: Error during open operation: %s\n", err);
 	assign_msg(ERR_MALLOC, "woody_packer: Malloc Error: %s\n", err);
 	return err;
 }
