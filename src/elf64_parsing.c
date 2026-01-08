@@ -143,7 +143,7 @@ parsing_info	parse_elf64(int fd, char **err_msg)
 		close(fd);
 		vprintf_exit(ERR_ELFHDR, err_msg);
 	}
-	info.is_64 = false;
+	info.is_64 = true;
 	info.payload = NULL;
 
 	get_encrypt_info(fd, &info, &header, err_msg);
