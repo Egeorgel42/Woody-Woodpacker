@@ -72,6 +72,10 @@ parsing_info	parse_elf(int fd, char **err_msg);
 parsing_info	parse_elf32(int fd, char **err_msg);
 parsing_info	parse_elf64(int fd, char **err_msg);
 
+
+void	correct_section_header32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
+void	correct_section_header64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
+
 void	payload_insert(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg);
 void	payload_insert32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
 void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
@@ -79,6 +83,5 @@ void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *pa
 void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
 mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg);
 void 		create_woody(void *file_ptr, size_t total_file_size, char **err_msg);
-
 
 #endif

@@ -1,5 +1,18 @@
 #include "woody.h"
 
+void	correct_section_header32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
+{
+	Elf64_Off injection_offset = ((payload_info32 *) info->payload)->insertion_header.p_offset + ((payload_info32 *) info->payload)->insertion_header.p_filesz;
+	Elf32_Shdr *sh_headers = executable->addr + ((payload_info32 *) info->payload)->main_header_replace.e_shoff;
+	for (int i = 0; i < ((payload_info32 *) info->payload)->main_header_replace.e_shnum; i++)
+	{
+		if (sh_headers[i].sh_offset >= injection_offset)
+		{
+			sh_headers[i].sh_offset += payload->size;
+		}
+	}
+}
+
 void	payload_modify32(parsing_info *info, size_t payload_size)
 {
 	((payload_info32 *) info->payload)->main_header_replace.e_shoff += payload_size;
