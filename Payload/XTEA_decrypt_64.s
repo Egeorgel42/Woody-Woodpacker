@@ -43,6 +43,30 @@ _start:
 	dec r15 				; decrement block counter (R15)
 	jnz .big_loop 			; if not done yet, start again
 
+	; -------- Changing .text perms with mprotect syscall ------
+
+	mov rax, 10 ; mprotect syscall number
+	; Adress calculation
+	mov rdi, [rel start_txt]	; addr pointing to the start of .text
+	mov r9, rdi 				; save exact address for size calc
+
+	; since mprotect is picky, we need to give it the exact precise size
+	; so we align to erase the 12 last bits
+
+	and rdi, 0xFFFFFFFFFFFFF000
+
+	; Size calculation (size must cover from the very start calculated above
+	; to its real end in .text)
+
+	mov rsi, [rel txt_size] 	; original code size
+	add rsi, r9 				; exact end address
+	sub rsi, rdi 				; exact end - aligned start = total size
+
+	; FLAGS
+	mov rdx, 5 					; PROT_READ (1) | PROT_EXEC (4) = 5
+
+	syscall 					; exec
+
 	; 4. Restore Context (LIFO order - Inverse of Push)
 	; We restore everything exactly as it was before jumping back to the host
 	pop rdi
@@ -142,6 +166,7 @@ xtea_decrypt_block:
 	mov [rdi], eax 			; write decrypted v0 back to memory
 	mov [rdi + 4], ebx 		; write decrypted v1 back to memory
 	
+
 	; RET: We return to the caller (_start loop)
 	; Note: Context restoration (POP) is handled in _start now
 	ret
