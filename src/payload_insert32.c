@@ -25,15 +25,30 @@ static size_t	payload_modify32(parsing_info *info, mmap_alloc *executable, mmap_
 		munmap(payload->addr, payload->size);
 		vprintf_exit(ERR_ELFHDR, err_msg);
 	}
-	//find a program section that has a code cave big enough to insert payload
-	for (int i = 0; i < main_header->e_phnum; i++)
+	//find a program section that has a code cave big enough to insert payload, if it is the last program section, move all section header by the payload size
+	for (size_t i = 0; i < main_header->e_phnum; i++)
 	{
+		if (text_phdr_index == i)
+			continue;
 		size_t code_cave_end = executable->size - (main_header->e_shnum * main_header->e_shentsize);
 		if (i + 1 < main_header->e_phnum)
-			code_cave_end = p_headers[i + 1].p_offset;
-		if (p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
 		{
+			code_cave_end = p_headers[i + 1].p_offset;
+			if (p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
+			{
+				insert_hdr = &p_headers[i];
+				break;
+			}
+		}
+		else if (p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
+		{
+			ft_memmove(sh_headers, sh_headers + payload->size, main_header->e_shentsize * main_header->e_shnum);
 			insert_hdr = &p_headers[i];
+			main_header->e_shoff += payload->size;
+			for (size_t j = 0; j < main_header->e_shnum; j++)
+			{
+				sh_headers[j].sh_offset += payload->size;
+			}
 			break;
 		}
 	}
