@@ -26,20 +26,18 @@ static void generate_random_key(uint8_t *buffer, size_t size)
 	close(fd);
 }
 
-static mmap_alloc	map_file(parsing_info *info, char *filename, char **err_msg)
+static mmap_alloc	map_file(char *filename, char **err_msg)
 {
 	mmap_alloc executable;
 
     int fd = open(filename, O_RDWR);
     if (fd == -1) {
-		free(info->payload);
         vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
     }
 
     struct stat st;
     if (fstat(fd, &st) == -1) {
         close(fd);
-		free(info->payload);
         vprintf_exit(ERR_STAT, err_msg, strerror(errno));
     }
     executable.size = st.st_size;
@@ -48,7 +46,6 @@ static mmap_alloc	map_file(parsing_info *info, char *filename, char **err_msg)
     close(fd);
 
     if (executable.addr == MAP_FAILED) {
-		free(info->payload);
         vprintf_exit(ERR_MMAP, err_msg, strerror(errno));
     }
     return executable;
@@ -57,7 +54,7 @@ static mmap_alloc	map_file(parsing_info *info, char *filename, char **err_msg)
 mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg)
 {
     // Map file in RAM
-    mmap_alloc executable = map_file(info, filename, err_msg);
+    mmap_alloc executable = map_file(filename, err_msg);
 
     // randomly generate the encryption key
     generate_random_key(info->encrypt.key, KEY_SIZE);

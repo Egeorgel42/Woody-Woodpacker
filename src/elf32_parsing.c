@@ -1,7 +1,7 @@
 #include "woody.h"
 
 /// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
-static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
+static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, Elf32_Ehdr *header)
 {
 	size_t	size = header->e_shentsize * header->e_shnum;
 
@@ -9,8 +9,6 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (!s_hdr)
 	{
 		close(fd);
-		if (info->payload)
-			free(info->payload);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
 
@@ -19,8 +17,6 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (rd < size)
 	{
 		close(fd);
-		if (info->payload)
-			free(info->payload);
 		free(s_hdr);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
@@ -31,34 +27,43 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 static void get_encrypt_info(int fd, parsing_info *info, Elf32_Ehdr *header, char **err_msg)
 {
 	Elf32_Shdr *res = NULL;
-	Elf32_Shdr *s_hdr = get_s_hdr(fd, err_msg, info, header);
+	Elf32_Shdr *s_hdr = get_s_hdr(fd, err_msg, header);
 	char *buffer = malloc(s_hdr[header->e_shstrndx].sh_size);
+	if (!buffer)
+	{
+		close(fd);
+		free(s_hdr);
+		vprintf_exit(ERR_MALLOC, err_msg);
+	}
+
 	lseek(fd, s_hdr[header->e_shstrndx].sh_offset, SEEK_SET);
 	read(fd, buffer, s_hdr[header->e_shstrndx].sh_size);
+
 	for (int i = 0; i < header->e_shnum; i++)
 	{
 		if (!ft_strcmp(buffer + s_hdr[i].sh_name, ".text"))
 		{
 			res = s_hdr;
+			info->text_shdr_index = i;
 			break;
 		}
 	}
+
 	free(buffer);
 	if (!res)
 	{
 		close(fd);
 		free(s_hdr);
-		if (info->payload)
-			free(info->payload);
 		vprintf_exit(ERR_NCODE, err_msg);
 	}
+
 	info->encrypt.file_pos = res->sh_offset;
 	info->encrypt.file_size = res->sh_size;
 	info->encrypt.mem_addr = res->sh_addr;
 	free(s_hdr);
 }
 
-static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_Ehdr *header)
+static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, Elf32_Ehdr *header)
 {
 	size_t	size = header->e_phentsize * header->e_phnum;
 
@@ -66,8 +71,6 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (!p_hdr)
 	{
 		close(fd);
-		if (info->payload)
-			free(info->payload);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
 	}
 
@@ -76,8 +79,6 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 	if (rd < size)
 	{
 		close(fd);
-		if (info->payload)
-			free(info->payload);
 		free(p_hdr);
 		vprintf_exit(ERR_READ, err_msg, strerror(errno));
 	}
@@ -85,38 +86,24 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, parsing_info *info, Elf32_E
 }
 
 /// @brief gets specific phdr header to insert payload in, also checks for PIE to verify if file is an actual executable
-static void get_payload_info(int fd, parsing_info *info, Elf32_Ehdr *header, char **err_msg)
+static void get_payload_info(int fd, Elf32_Ehdr *header, char **err_msg)
 {
-	Elf32_Phdr *p_hdr = get_p_hdr(fd, err_msg, info, header);
-	info->payload = malloc(sizeof(payload_info32));
-	if (!info->payload)
-	{
-		close(fd);
-		free(p_hdr);
-		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
-	}
-
-	((payload_info32 *) info->payload)->main_header_replace = *header;
-	bool	is_executable = false;
-	bool	copied_header = false;
+	Elf32_Phdr *p_hdr = get_p_hdr(fd, err_msg, header);
+	bool		is_executable = false;
 
 	for (int i = 0; i < header->e_phnum; i++)
 	{
 		if (p_hdr[i].p_type == PT_INTERP)
-			is_executable = true;
-		if (p_hdr[i].p_type == PT_LOAD && (p_hdr[i].p_flags & PF_W))
 		{
-			((payload_info32 *) info->payload)->insertion_header = p_hdr[i];
-			((payload_info32 *) info->payload)->insert_hdr_pos = ((i + 1) * header->e_phentsize) + header->e_phoff;
-			copied_header = true;
+			is_executable = true;
+			break;
 		}
 	}
 
 	free(p_hdr);
-	if (!(is_executable && copied_header))
+	if (!(is_executable))
 	{
 		close(fd);
-		free(info->payload);
 		if (!is_executable)
 			vprintf_exit(ERR_NEXEC, err_msg);
 		vprintf_exit(ERR_ELFHDR, err_msg);
@@ -144,9 +131,9 @@ parsing_info	parse_elf32(int fd, char **err_msg)
 		vprintf_exit(ERR_ELFHDR, err_msg);
 	}
 	info.is_64 = false;
-	info.payload = NULL;
+	info.text_shdr_index = 0;
 
 	get_encrypt_info(fd, &info, &header, err_msg);
-	get_payload_info(fd, &info, &header, err_msg);
+	get_payload_info(fd, &header, err_msg);
 	return info;
 }

@@ -1,65 +1,56 @@
 #include "woody.h"
 
-void	correct_section_header64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
+/// @brief will modify executable elf headers phdr and shdr
+/// @return position of were executable should be inserted
+static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
 {
-	Elf64_Ehdr *main_header = &((payload_info64 *) info->payload)->main_header_replace;
-	size_t injection_offset = ((payload_info64 *) info->payload)->insertion_header.p_offset + ((payload_info64 *) info->payload)->insertion_header.p_filesz;
+	Elf64_Ehdr *main_header = executable->addr;
 	Elf64_Shdr *sh_headers = executable->addr + main_header->e_shoff;
-	for (int i = 0; i < main_header->e_shnum; i++)
-	{
-		if (sh_headers[i].sh_offset >= injection_offset)
-		{
-			sh_headers[i].sh_offset += payload->size;
-		}
-	}
-	char *strtab = (char *)executable->addr + sh_headers[main_header->e_shstrndx].sh_offset;
-	size_t encrypted_offset = 0;
-	for (int i = 0; i < main_header->e_shnum; i++)
-	{
-        if (strcmp(strtab + sh_headers[i].sh_name, ".text") == 0) {
-            encrypted_offset = sh_headers[i].sh_offset;
-			break;
-        }
-    }
-	Elf64_Phdr *ph_headers = executable->addr + main_header->e_phoff;
+	Elf64_Phdr *p_headers = executable->addr + main_header->e_phoff;
+	Elf64_Phdr *insert_hdr = NULL;
+	size_t		text_phdr_index = -1;
+	//find p_header corresponding to .text (encrypted) section and modify permitions
 	for (int i = 0; i < main_header->e_phnum; i++)
 	{
-        if (ph_headers[i].p_type == PT_LOAD && encrypted_offset >= ph_headers[i].p_offset && 
-            encrypted_offset < (ph_headers[i].p_offset + ph_headers[i].p_filesz))
+        if (p_headers[i].p_type == PT_LOAD && sh_headers[info->text_shdr_index].sh_offset >= p_headers[i].p_offset && 
+            sh_headers[info->text_shdr_index].sh_offset < (p_headers[i].p_offset + p_headers[i].p_filesz))
 		{
-			ph_headers[i].p_flags = PF_W | PF_R;
+			p_headers[i].p_flags = PF_W | PF_R;
+			text_phdr_index = i;
+		}
+	}
+	if (text_phdr_index == (size_t)-1)
+	{
+		munmap(executable->addr, executable->size);
+		munmap(payload->addr, payload->size);
+		vprintf_exit(ERR_ELFHDR, err_msg);
+	}
+	//find a program section that has a code cave big enough to insert payload
+	for (int i = 0; i < main_header->e_phnum; i++)
+	{
+		size_t code_cave_end = executable->size - (main_header->e_shnum * main_header->e_shentsize);
+		if (i + 1 < main_header->e_phnum)
+			code_cave_end = p_headers[i + 1].p_offset;
+		if (p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
+		{
+			insert_hdr = &p_headers[i];
 			break;
 		}
-    }
-}
-
-void	payload_modify64(parsing_info *info, size_t payload_size)
-{
-	((payload_info64 *) info->payload)->main_header_replace.e_shoff += payload_size;
-	((payload_info64 *) info->payload)->main_header_replace.e_entry = ((payload_info64 *) info->payload)->insertion_header.p_vaddr + ((payload_info64 *) info->payload)->insertion_header.p_memsz;
-	((payload_info64 *) info->payload)->insertion_header.p_filesz += payload_size;
-	((payload_info64 *) info->payload)->insertion_header.p_memsz += payload_size;
+	}
+	size_t injection_offset = insert_hdr->p_offset + insert_hdr->p_filesz;
+	
+	main_header->e_entry = insert_hdr->p_vaddr + insert_hdr->p_memsz;
+	insert_hdr->p_filesz += payload->size;
+	insert_hdr->p_memsz += payload->size;
+	insert_hdr->p_flags = PF_X | PF_R;
+	return injection_offset;
 }
 
 void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
 {
-	payload_modify64(info, payload->size);
-	size_t file_pos = ((payload_info64 *) info->payload)->main_header_replace.e_entry - ((payload_info64 *) info->payload)->insertion_header.p_vaddr + ((payload_info64 *) info->payload)->insertion_header.p_offset;
-	void *new_file = malloc(executable->size + payload->size);
-	if (!new_file)
-	{
-		munmap(executable->addr, executable->size);
-		munmap(payload->addr, payload->size);
-		free(info->payload);
-		vprintf_exit(ERR_MALLOC, err_msg);
-	}
-	ft_memcpy(executable->addr, &((payload_info64 *) info->payload)->main_header_replace, sizeof(Elf64_Ehdr));
-	ft_memcpy(executable->addr + ((payload_info64 *) info->payload)->insert_hdr_pos, &((payload_info64 *) info->payload)->insertion_header, sizeof(Elf64_Phdr));
-	ft_memcpy(new_file, executable->addr, file_pos);
-	ft_memcpy(new_file + file_pos, payload->addr, payload->size);
-	ft_memcpy(new_file + file_pos + payload->size, executable->addr + file_pos, executable->size - file_pos);
-	munmap(executable->addr, executable->size);
+	size_t payload_pos =  payload_modify64(info, executable, payload, err_msg);
+	ft_memcpy(executable->addr + payload_pos, payload->addr, payload->size);
 	munmap(payload->addr, payload->size);
-	free(info->payload);
-	create_woody(new_file, executable->size + payload->size, err_msg);
+	create_woody(executable->addr, executable->size, err_msg);
+	munmap(executable->addr, executable->size);
 }

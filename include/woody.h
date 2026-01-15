@@ -29,22 +29,9 @@ typedef struct t_encrypt_info {
 
 typedef struct t_parsing_info {
 	encrypt_info	encrypt;
-	void			*payload;
 	bool			is_64;
+	size_t			text_shdr_index;
 } parsing_info;
-
-typedef struct t_payload_info32 {
-	Elf32_Ehdr	main_header_replace;
-	Elf32_Phdr	insertion_header;
-	size_t		insert_hdr_pos;
-} payload_info32;
-
-typedef struct t_payload_info64 {
-	Elf64_Ehdr	main_header_replace;
-	Elf64_Phdr	insertion_header;
-	size_t		insert_hdr_pos;
-} payload_info64;
-
 
 /// @brief Error codes related to woody
 typedef enum t_err {

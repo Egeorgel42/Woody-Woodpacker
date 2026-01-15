@@ -5,19 +5,18 @@ void create_woody(void *file_ptr, size_t total_file_size, char **err_msg)
     // create woody file
     int fd_out = open("woody", O_WRONLY | O_CREAT | O_TRUNC, 0755);
     if (fd_out == -1) {
-        free(file_ptr);
+		munmap(file_ptr, total_file_size);
         vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
     }
 
     // write content
     if (write(fd_out, file_ptr, total_file_size) == -1) {
 		close(fd_out);
-		free(file_ptr);
+		munmap(file_ptr, total_file_size);
 		vprintf_exit(ERR_WRITE, err_msg, strerror(errno));
     }
 
     close(fd_out);
-	free(file_ptr);
 }
 
 static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg)
@@ -34,14 +33,12 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
 	if (!str)
 	{
 		munmap(executable->addr, executable->size);
-		free(info->payload);
 		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
 	}
 	int fd = open(str, O_RDWR);
 	free(str);
     if (fd == -1) {
 		munmap(executable->addr, executable->size);
-		free(info->payload);
         vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
     }
 
@@ -49,7 +46,6 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
     if (fstat(fd, &st) == -1) {
         close(fd);
 		munmap(executable->addr, executable->size);
-		free(info->payload);
         vprintf_exit(ERR_STAT, err_msg, strerror(errno));
     }
     res.size = st.st_size;
@@ -60,7 +56,6 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
     if (res.addr == MAP_FAILED)
 	{
 		munmap(executable->addr, executable->size);
-		free(info->payload);
         vprintf_exit(ERR_MMAP, err_msg, strerror(errno));
 	}
 	return res;
@@ -70,6 +65,7 @@ static void	patch_payload(parsing_info *info, mmap_alloc *executable, mmap_alloc
 {
 	if (info->is_64)
 	{
+		Elf64_Ehdr *header = executable->addr;
 		// Offsets calculated from the end of asm 64 bits
 		// ASM structure : [ ...Code... | key (16) | Start(8) | Size (8) | Old_EP (8) }
 		size_t off_key 		= payload->size - 40;
@@ -80,11 +76,11 @@ static void	patch_payload(parsing_info *info, mmap_alloc *executable, mmap_alloc
 		ft_memcpy(payload->addr + off_key, info->encrypt.key, 16); // Key (16 bits)
 		ft_memcpy(payload->addr + off_start, &info->encrypt.mem_addr, 8); // Virtual Address .text
 		ft_memcpy(payload->addr + off_size, &info->encrypt.file_size, 8); // .text Size
-		ft_memcpy(payload->addr + off_ep, &((payload_info64 *) info->payload)->main_header_replace.e_entry, 8); // old entry point
-		correct_section_header64(info, executable, payload);
+		ft_memcpy(payload->addr + off_ep, &header->e_entry, 8); // old entry point
 	}
 	else //32 bits
 	{
+		Elf32_Ehdr *header = executable->addr;
 		// ASM structure: [ ...Code... | Key (16) | Start (4) | Size (4) | Old_EP (4) ]
         size_t off_key   = payload->size - 28;
         size_t off_start = payload->size - 12;
@@ -98,8 +94,7 @@ static void	patch_payload(parsing_info *info, mmap_alloc *executable, mmap_alloc
         ft_memcpy(payload->addr + off_key, info->encrypt.key, 16);               // key stays 16 bits
         ft_memcpy(payload->addr + off_start, &start32, 4);
         ft_memcpy(payload->addr + off_size, &size32, 4);
-        ft_memcpy(payload->addr + off_ep, &((payload_info32 *) info->payload)->main_header_replace.e_entry, 4);
-		correct_section_header32(info, executable, payload);
+        ft_memcpy(payload->addr + off_ep, &header->e_entry, 4);
 	}
 }
 
