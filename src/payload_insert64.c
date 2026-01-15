@@ -34,13 +34,13 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
 		if (i + 1 < main_header->e_phnum)
 		{
 			code_cave_end = p_headers[i + 1].p_offset;
-			if (p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
+			if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
 			{
 				insert_hdr = &p_headers[i];
 				break;
 			}
 		}
-		else if (p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
+		else if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end) //if it is last program section
 		{
 			ft_memmove(sh_headers, sh_headers + payload->size, main_header->e_shentsize * main_header->e_shnum);
 			insert_hdr = &p_headers[i];
