@@ -50,8 +50,8 @@ _start:
 	mov rdi, [rel start_txt]	; addr pointing to the start of .text
 	mov r9, rdi 				; save exact address for size calc
 
-	; since mprotect is picky, we need to give it the exact precise size
-	; so we align to erase the 12 last bits
+	; since mprotect is picky, we need to give it the exact page alignement
+	; so we align to erase the 12 last bits (align to 4096 bytes)
 
 	and rdi, 0xFFFFFFFFFFFFF000
 
