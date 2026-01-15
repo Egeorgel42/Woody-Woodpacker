@@ -29,7 +29,7 @@ _start:
 
 	; INIT DECRYPTION
 	lea rsi, [rel ckey]         ; RSI points to the key
-	lea rdi, [rel start_txt]    ; RDI points to the start of ciphered zone
+	mov rdi, [rel start_txt]    ; RDI points to the start of ciphered zone
 	
 	mov r15, [rel txt_size]     ; R15 contains the txt size (We use R15 because RCX is used in XTEA)
 	shr r15, 3 				    ; R15 / 8 = number of blocks to uncipher

@@ -15,7 +15,7 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
         if (p_headers[i].p_type == PT_LOAD && sh_headers[info->text_shdr_index].sh_offset >= p_headers[i].p_offset && 
             sh_headers[info->text_shdr_index].sh_offset < (p_headers[i].p_offset + p_headers[i].p_filesz))
 		{
-			p_headers[i].p_flags = PF_W | PF_R;
+			p_headers[i].p_flags = PF_W | PF_R | PF_X;
 			text_phdr_index = i;
 		}
 	}
