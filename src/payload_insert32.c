@@ -1,5 +1,27 @@
 #include "woody.h"
 
+static void	insert_var_payload32(Elf32_Phdr *insert_hdr, parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
+{
+	Elf32_Ehdr *header = executable->addr;
+	// ASM structure: [ ...Code... | Key (16) | Start (4) | Size (4) | Old_EP (4) ]
+	size_t off_key   = payload->size - 28;
+	size_t off_start = payload->size - 12;
+	size_t off_size  = payload->size - 8;
+	size_t off_ep    = payload->size - 4;
+
+	// convert in 32 bits
+	uint32_t size32  = (uint32_t)info->encrypt.file_size;
+
+	int32_t relative_text = (uint32_t)info->encrypt.mem_addr - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
+	int32_t relative_entry = header->e_entry - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
+
+	ft_memcpy(payload->addr + off_key, info->encrypt.key, 16);               // key stays 16 bits
+	ft_memcpy(payload->addr + off_start, &relative_text, 4);
+	ft_memcpy(payload->addr + off_size, &size32, 4);
+	ft_memcpy(payload->addr + off_ep, &relative_entry, 4);
+}
+
+
 /// @brief will modify executable elf headers phdr and shdr
 /// @return position of were executable should be inserted
 static size_t	payload_modify32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
@@ -52,6 +74,15 @@ static size_t	payload_modify32(parsing_info *info, mmap_alloc *executable, mmap_
 			break;
 		}
 	}
+	if (!insert_hdr)
+	{
+		munmap(executable->addr, executable->size);
+		munmap(payload->addr, payload->size);
+		vprintf_exit(ERR_CAVE, err_msg);
+	}
+
+	insert_var_payload32(insert_hdr, info, executable, payload);
+
 	size_t injection_offset = insert_hdr->p_offset + insert_hdr->p_filesz;
 	
 	main_header->e_entry = insert_hdr->p_vaddr + insert_hdr->p_memsz;

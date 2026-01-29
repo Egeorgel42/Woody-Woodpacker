@@ -61,51 +61,10 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
 	return res;
 }
 
-static void	patch_payload(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
-{
-	if (info->is_64)
-	{
-		Elf64_Ehdr *header = executable->addr;
-		// Offsets calculated from the end of asm 64 bits
-		// ASM structure : [ ...Code... | key (16) | Start(8) | Size (8) | Old_EP (8) }
-		size_t off_key 		= payload->size - 40;
-		size_t off_start 	= payload->size - 24;
-		size_t off_size 	= payload->size- 16;
-		size_t off_ep 		= payload->size - 8;
-
-		ft_memcpy(payload->addr + off_key, info->encrypt.key, 16); // Key (16 bits)
-		ft_memcpy(payload->addr + off_start, &info->encrypt.mem_addr, 8); // Virtual Address .text
-		ft_memcpy(payload->addr + off_size, &info->encrypt.file_size, 8); // .text Size
-		ft_memcpy(payload->addr + off_ep, &header->e_entry, 8); // old entry point
-	}
-	else //32 bits
-	{
-		Elf32_Ehdr *header = executable->addr;
-		// ASM structure: [ ...Code... | Key (16) | Start (4) | Size (4) | Old_EP (4) ]
-        size_t off_key   = payload->size - 28;
-        size_t off_start = payload->size - 12;
-        size_t off_size  = payload->size - 8;
-        size_t off_ep    = payload->size - 4;
-
-        // convert in 32 bits
-        uint32_t start32 = (uint32_t)info->encrypt.mem_addr;
-        uint32_t size32  = (uint32_t)info->encrypt.file_size;
-
-        ft_memcpy(payload->addr + off_key, info->encrypt.key, 16);               // key stays 16 bits
-        ft_memcpy(payload->addr + off_start, &start32, 4);
-        ft_memcpy(payload->addr + off_size, &size32, 4);
-        ft_memcpy(payload->addr + off_ep, &header->e_entry, 4);
-	}
-}
-
-
 void	payload_insert(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg)
 {
     // Get raw payload (readonly)
     mmap_alloc payload = get_payload(info, executable, exec_path, err_msg);
-
-    // Create final payload with the data inside (malloc'd ptr)
-    patch_payload(info, executable, &payload);
 
     // call injection function
     if (info->is_64)

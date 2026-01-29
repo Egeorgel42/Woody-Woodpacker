@@ -41,6 +41,7 @@ typedef enum t_err {
 	ERR_NELF,
 	ERR_NEXEC,
 	ERR_OSABI,
+	ERR_CAVE,
 	ERR_ELFHDR,
 	ERR_ENDIAN,
 	ERR_OPEN,

@@ -26,6 +26,7 @@ char	**init_msgs()
 	assign_msg(ERR_NELF, "woody_packer: Given parameter is not an elf file\n", err);
 	assign_msg(ERR_NEXEC, "woody_packer: Given file is not an executable\n", err);
 	assign_msg(ERR_OSABI, "woody_packer: Incompatible OS-ABI executable\n", err);
+	assign_msg(ERR_CAVE, "woody_packer: Couldn't find any code caves big enough for payload in executable\n", err);
 	assign_msg(ERR_ELFHDR, "woody_packer: Invalid Elf executable header\n", err);
 	assign_msg(ERR_ENDIAN, "woody_packer: Big endian executables aren't supported\n", err);
 	assign_msg(ERR_HELP, "woody_packer: Invalid parameter: path to elf executable required\n", err);

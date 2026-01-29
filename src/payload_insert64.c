@@ -1,5 +1,24 @@
 #include "woody.h"
 
+static void	insert_var_payload64(Elf64_Phdr *insert_hdr, parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
+{
+	Elf64_Ehdr *header = executable->addr;
+	// Offsets calculated from the end of asm 64 bits
+	// ASM structure : [ ...Code... | key (16) | Start(8) | Size (8) | Old_EP (8) }
+	size_t off_key 		= payload->size - 40;
+	size_t off_start 	= payload->size - 24;
+	size_t off_size 	= payload->size- 16;
+	size_t off_ep 		= payload->size - 8;
+
+	int64_t relative_text = info->encrypt.mem_addr - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
+	int64_t relative_entry = header->e_entry - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
+
+	ft_memcpy(payload->addr + off_key, info->encrypt.key, 16); // Key (16 bits)
+	ft_memcpy(payload->addr + off_start, &relative_text, 8); // distance between .text and payload
+	ft_memcpy(payload->addr + off_size, &info->encrypt.file_size, 8); // .text Size
+	ft_memcpy(payload->addr + off_ep, &relative_entry, 8); // distance between the old entrypoint and the new one
+}
+
 /// @brief will modify executable elf headers phdr and shdr
 /// @return position of were executable should be inserted
 static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
@@ -15,7 +34,7 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
         if (p_headers[i].p_type == PT_LOAD && sh_headers[info->text_shdr_index].sh_offset >= p_headers[i].p_offset && 
             sh_headers[info->text_shdr_index].sh_offset < (p_headers[i].p_offset + p_headers[i].p_filesz))
 		{
-			p_headers[i].p_flags = PF_W | PF_R | PF_X;
+			p_headers[i].p_flags = PF_W | PF_R;
 			text_phdr_index = i;
 		}
 	}
@@ -52,6 +71,15 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
 			break;
 		}
 	}
+	if (!insert_hdr)
+	{
+		munmap(executable->addr, executable->size);
+		munmap(payload->addr, payload->size);
+		vprintf_exit(ERR_CAVE, err_msg);
+	}
+
+	insert_var_payload64(insert_hdr, info, executable, payload);
+
 	size_t injection_offset = insert_hdr->p_offset + insert_hdr->p_filesz;
 	
 	main_header->e_entry = insert_hdr->p_vaddr + insert_hdr->p_memsz;
