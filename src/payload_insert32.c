@@ -1,5 +1,33 @@
 #include "woody.h"
 
+//find p_header corresponding to .text (encrypted) section and modify permitions
+static size_t	find_text_phdr(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
+{
+	Elf32_Ehdr *main_header = executable->addr;
+	Elf32_Shdr *sh_headers = executable->addr + main_header->e_shoff;
+	Elf32_Phdr *p_headers = executable->addr + main_header->e_phoff;
+	size_t		text_phdr_index = -1;
+
+	for (int i = 0; i < main_header->e_phnum; i++)
+	{
+        if (p_headers[i].p_type == PT_LOAD && sh_headers[info->text_shdr_index].sh_offset >= p_headers[i].p_offset && 
+            sh_headers[info->text_shdr_index].sh_offset < (p_headers[i].p_offset + p_headers[i].p_filesz))
+		{
+			p_headers[i].p_flags = PF_W | PF_R;
+			text_phdr_index = i;
+			break;
+		}
+	}
+	if (text_phdr_index == (size_t)-1)
+	{
+		munmap(executable->addr, executable->size);
+		munmap(payload->addr, payload->size);
+		vprintf_exit(ERR_ELFHDR, err_msg);
+	}
+	return text_phdr_index;
+}
+
+/// @brief add variables to payload (encryption key, text to payload delta, text size, old etrypoint)
 static void	insert_var_payload32(Elf32_Phdr *insert_hdr, parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
 {
 	Elf32_Ehdr *header = executable->addr;
@@ -30,46 +58,32 @@ static size_t	payload_modify32(parsing_info *info, mmap_alloc *executable, mmap_
 	Elf32_Shdr *sh_headers = executable->addr + main_header->e_shoff;
 	Elf32_Phdr *p_headers = executable->addr + main_header->e_phoff;
 	Elf32_Phdr *insert_hdr = NULL;
-	size_t		text_phdr_index = -1;
-	//find p_header corresponding to .text (encrypted) section and modify permitions
-	for (int i = 0; i < main_header->e_phnum; i++)
-	{
-        if (p_headers[i].p_type == PT_LOAD && sh_headers[info->text_shdr_index].sh_offset >= p_headers[i].p_offset && 
-            sh_headers[info->text_shdr_index].sh_offset < (p_headers[i].p_offset + p_headers[i].p_filesz))
-		{
-			p_headers[i].p_flags = PF_W | PF_R;
-			text_phdr_index = i;
-		}
-	}
-	if (text_phdr_index == (size_t)-1)
-	{
-		munmap(executable->addr, executable->size);
-		munmap(payload->addr, payload->size);
-		vprintf_exit(ERR_ELFHDR, err_msg);
-	}
+
+	size_t text_phdr_index = find_text_phdr(info, executable, payload, err_msg);
+
 	//find a program section that has a code cave big enough to insert payload, if it is the last program section, move all section header by the payload size
 	for (size_t i = 0; i < main_header->e_phnum; i++)
 	{
 		if (text_phdr_index == i)
 			continue;
 		size_t code_cave_end = executable->size - (main_header->e_shnum * main_header->e_shentsize);
-		if (i + 1 < main_header->e_phnum)
+		if (i + 1 < main_header->e_phnum) //if not the last program section
 		{
-			code_cave_end = p_headers[i + 1].p_offset;
-			if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end)
+			code_cave_end = p_headers[i + 1].p_offset; //start of next start section
+			if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end) //payload size < code_cave
 			{
 				insert_hdr = &p_headers[i];
 				break;
 			}
 		}
-		else if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end) //if it is last program section
+		else if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end) //if it is last program section && payload size < code_cave - section header size
 		{
-			ft_memmove(sh_headers, sh_headers + payload->size, main_header->e_shentsize * main_header->e_shnum);
+			ft_memmove(sh_headers, sh_headers + payload->size, main_header->e_shentsize * main_header->e_shnum); //move section header to the end to make space for payload
 			insert_hdr = &p_headers[i];
-			main_header->e_shoff += payload->size;
+			main_header->e_shoff += payload->size;		//rewrite section header pos
 			for (size_t j = 0; j < main_header->e_shnum; j++)
 			{
-				sh_headers[j].sh_offset += payload->size;
+				sh_headers[j].sh_offset += payload->size;//rewrite section header pos
 			}
 			break;
 		}
