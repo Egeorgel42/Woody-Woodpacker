@@ -19,16 +19,11 @@ typedef struct t_mmap_alloc {
 	size_t	size;
 } mmap_alloc;
 
-/// @brief data necessary to locate position of program section and encrypt
-typedef struct t_encrypt_info {
-	uint64_t	file_pos; //position of program section in file
-	uint64_t	mem_addr; //position of program section in memory, litteral/offset if dynamic allocation or not
-	uint64_t	file_size; //size of program section in file
-	uint8_t 	key[16];
-} encrypt_info;
-
 typedef struct t_parsing_info {
-	encrypt_info	encrypt;
+	uint64_t		file_pos; //position of program section in file
+	uint64_t		mem_addr; //position of program section in memory, litteral/offset if dynamic allocation or not
+	uint64_t		file_size; //size of program section in file
+	uint8_t 		key[16];
 	bool			is_64;
 	size_t			text_shdr_index;
 } parsing_info;

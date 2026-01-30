@@ -57,9 +57,9 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header, cha
 		vprintf_exit(ERR_NCODE, err_msg);
 	}
 
-	info->encrypt.file_pos = res->sh_offset;
-	info->encrypt.file_size = res->sh_size;
-	info->encrypt.mem_addr = res->sh_addr;
+	info->file_pos = res->sh_offset;
+	info->file_size = res->sh_size;
+	info->mem_addr = res->sh_addr;
 	free(s_hdr);
 }
 

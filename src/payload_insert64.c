@@ -38,12 +38,12 @@ static void	insert_var_payload64(Elf64_Phdr *insert_hdr, parsing_info *info, mma
 	size_t off_size 	= payload->size - 16;
 	size_t off_ep 		= payload->size - 8;
 
-	int64_t relative_text = info->encrypt.mem_addr - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
+	int64_t relative_text = info->mem_addr - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
 	int64_t relative_entry = header->e_entry - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
 
-	ft_memcpy(payload->addr + off_key, info->encrypt.key, 16); // Key (16 bits)
+	ft_memcpy(payload->addr + off_key, info->key, 16); // Key (16 bits)
 	ft_memcpy(payload->addr + off_start, &relative_text, 8); // distance between .text and payload
-	ft_memcpy(payload->addr + off_size, &info->encrypt.file_size, 8); // .text Size
+	ft_memcpy(payload->addr + off_size, &info->file_size, 8); // .text Size
 	ft_memcpy(payload->addr + off_ep, &relative_entry, 8); // distance between the old entrypoint and the new one
 }
 

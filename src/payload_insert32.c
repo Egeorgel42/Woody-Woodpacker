@@ -38,12 +38,12 @@ static void	insert_var_payload32(Elf32_Phdr *insert_hdr, parsing_info *info, mma
 	size_t off_ep    = payload->size - 4;
 
 	// convert in 32 bits
-	uint32_t size32  = (uint32_t)info->encrypt.file_size;
+	uint32_t size32  = (uint32_t)info->file_size;
 
-	int32_t relative_text = (uint32_t)info->encrypt.mem_addr - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
+	int32_t relative_text = (uint32_t)info->mem_addr - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
 	int32_t relative_entry = header->e_entry - (insert_hdr->p_vaddr + insert_hdr->p_filesz);
 
-	ft_memcpy(payload->addr + off_key, info->encrypt.key, 16);               // key stays 16 bits
+	ft_memcpy(payload->addr + off_key, info->key, 16);               // key stays 16 bits
 	ft_memcpy(payload->addr + off_start, &relative_text, 4);
 	ft_memcpy(payload->addr + off_size, &size32, 4);
 	ft_memcpy(payload->addr + off_ep, &relative_entry, 4);

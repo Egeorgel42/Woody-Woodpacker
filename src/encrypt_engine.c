@@ -57,26 +57,26 @@ mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg)
     mmap_alloc executable = map_file(filename, err_msg);
 
     // randomly generate the encryption key
-    generate_random_key(info->encrypt.key, KEY_SIZE);
+    generate_random_key(info->key, KEY_SIZE);
 
     printf("key_value: ");
     for (int i = 0; i < KEY_SIZE; i++) {
-        printf("%02X", info->encrypt.key[i]);
+        printf("%02X", info->key[i]);
     }
     printf("\n");
     
-    uint32_t *xtea_key = (uint32_t *)info->encrypt.key;
+    uint32_t *xtea_key = (uint32_t *)info->key;
 
     // Calculate pointer to the data to encrypt, using
     // the file start + file offset
-    uint8_t *section_ptr = (uint8_t *)executable.addr + info->encrypt.file_pos;
+    uint8_t *section_ptr = (uint8_t *)executable.addr + info->file_pos;
 
     // Ciphering
     // Convert section pointer to uint32_t* for XTEA
     uint32_t *code_ptr = (uint32_t *)section_ptr;
     
     // info->file_size = number of bytes to cipher, divided by 8 since XTEA needs 64bits blocks
-    size_t num_blocks = info->encrypt.file_size / 8;
+    size_t num_blocks = info->file_size / 8;
 
     for (size_t i = 0; i < num_blocks; i++)
     {

@@ -1,4 +1,5 @@
 *.o
 *.vscode
+*.bin
 woody
 woody_woodpacker
