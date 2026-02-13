@@ -43,7 +43,7 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header, cha
 	{
 		if (!ft_strcmp(buffer + s_hdr[i].sh_name, ".text"))
 		{
-			res = s_hdr;
+			res = &s_hdr[i];
 			info->text_shdr_index = i;
 			break;
 		}

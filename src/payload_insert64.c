@@ -75,7 +75,7 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
 		}
 		else if (p_headers[i].p_type == PT_LOAD && p_headers[i].p_filesz + p_headers[i].p_offset + payload->size < code_cave_end) //if it is last program section && payload size < code_cave - section header size
 		{
-			ft_memmove(sh_headers, sh_headers + payload->size, main_header->e_shentsize * main_header->e_shnum); //move section header to the end to make space for payload
+			ft_memmove((char *)sh_headers + payload->size, sh_headers, main_header->e_shentsize * main_header->e_shnum); //move section header to the end to make space for payload
 			insert_hdr = &p_headers[i];
 			main_header->e_shoff += payload->size;		//rewrite section header pos
 			for (size_t j = 0; j < main_header->e_shnum; j++)
@@ -96,7 +96,7 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
 
 	size_t injection_offset = insert_hdr->p_offset + insert_hdr->p_filesz;
 	
-	main_header->e_entry = insert_hdr->p_vaddr + insert_hdr->p_memsz;
+	main_header->e_entry = insert_hdr->p_vaddr + insert_hdr->p_filesz;
 	insert_hdr->p_filesz += payload->size;
 	insert_hdr->p_memsz += payload->size;
 	insert_hdr->p_flags = PF_X | PF_R;

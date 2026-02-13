@@ -19,8 +19,14 @@ _start:
 	push r10
 	push r11
 	push r12
+	push r13
+	push r14
+	push r15
 	push rsi
 	push rdi
+
+	; Get runtime base address of the payload (position-independent)
+	lea r13, [rel _start]
 
 	; Print WOODY Message (Write syscall)
 	mov rax, 1                  ; RAX = 1 (syscall write)
@@ -31,10 +37,14 @@ _start:
 
 	; INIT DECRYPTION
 	lea rsi, [rel ckey]         ; RSI points to the key
-	mov rdi, [rel start_txt]    ; RDI points to the start of ciphered zone
+	mov rdi, [rel start_txt]    ; RDI = relative offset from _start to .text
+	add rdi, r13                ; RDI = absolute runtime address of .text
 	
 	mov r15, [rel txt_size]     ; R15 contains the txt size (We use R15 because RCX is used in XTEA)
 	shr r15, 3 				    ; R15 / 8 = number of blocks to uncipher
+
+	test r15, r15               ; if no blocks to decrypt, skip
+	jz .skip_decrypt
 
 ; da big loop
 .big_loop:
@@ -45,11 +55,13 @@ _start:
 	dec r15 				; decrement block counter (R15)
 	jnz .big_loop 			; if not done yet, start again
 
+.skip_decrypt:
 	; -------- Changing .text perms with mprotect syscall ------
 
 	mov rax, 10 ; mprotect syscall number
 	; Adress calculation
-	mov rdi, [rel start_txt]	; addr pointing to the start of .text
+	mov rdi, [rel start_txt]	; relative offset to .text
+	add rdi, r13 				; absolute runtime address of .text
 	mov r9, rdi 				; save exact address for size calc
 
 	; since mprotect is picky, we need to give it the exact page alignement
@@ -73,6 +85,9 @@ _start:
 	; We restore everything exactly as it was before jumping back to the host
 	pop rdi
 	pop rsi
+	pop r15
+	pop r14
+	pop r13
 	pop r12
 	pop r11
 	pop r10
@@ -85,7 +100,12 @@ _start:
 	popfq
 
 	; 5. JUMP TO ORIGINAL ENTRY POINT
-	jmp [rel old_entry_point]
+	; We use a stack trick: push target, restore rax, then ret to jump
+	push rax
+	lea rax, [rel _start]
+	add rax, [rel old_entry_point]
+	xchg [rsp], rax                ; stack top = jump target, rax = original value
+	ret                             ; pop target and jump
 
 
 ; -----------------------------------------------------------------------------
