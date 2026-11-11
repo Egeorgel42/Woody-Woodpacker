@@ -41,7 +41,7 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf32_Ehdr *header, cha
 
 	for (int i = 0; i < header->e_shnum; i++)
 	{
-		if (!ft_strcmp(buffer + s_hdr[i].sh_name, ".text"))
+		if (ft_strcmp(buffer + s_hdr[i].sh_name, ".text") == 0)
 		{
 			res = &s_hdr[i];
 			info->text_shdr_index = i;

@@ -69,7 +69,7 @@ t_list	*ft_lstmap(t_list *lst, void *(*f)(void *), void (*del)(void*));
 int		ft_printf(const char	*str, ...);
 int		ft_fprintf(int fd, const char	*str, ...);
 char	*ft_strjoinfree(char *s1, char *s2, bool free_s1, bool free_s2);
-bool	ft_strcmp(const char *str, const char *cmp);
+int		ft_strcmp(const char *str, const char *cmp);
 char	*get_next_line(int fd);
 
 #endif

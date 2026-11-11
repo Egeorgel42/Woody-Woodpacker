@@ -19,24 +19,15 @@ void create_woody(void *file_ptr, size_t total_file_size, char **err_msg)
     close(fd_out);
 }
 
-static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg)
+static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char **err_msg)
 {
 	mmap_alloc res;
-	char *str;
-	char payload_path[22] = "Payload/payload32.bin";
+    int fd = 0;
 	if (info->is_64)
-		ft_memcpy(payload_path, "Payload/payload64.bin", 22);
+		fd = open(PAYLOAD64, O_RDWR);
+	else
+		fd = open(PAYLOAD32, O_RDWR);
 
-	exec_path[ft_strlen(exec_path) - ft_strlen("woody_woodpacker")] = 0;
-
-	str = ft_strjoinfree(exec_path, payload_path, false, false);
-	if (!str)
-	{
-		munmap(executable->addr, executable->size);
-		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
-	}
-	int fd = open(str, O_RDWR);
-	free(str);
     if (fd == -1) {
 		munmap(executable->addr, executable->size);
         vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
@@ -61,10 +52,10 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
 	return res;
 }
 
-void	payload_insert(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg)
+void	payload_insert(parsing_info *info, mmap_alloc *executable, char **err_msg)
 {
     // Get raw payload (readonly)
-    mmap_alloc payload = get_payload(info, executable, exec_path, err_msg);
+    mmap_alloc payload = get_payload(info, executable, err_msg);
 
     // call injection function
     if (info->is_64)

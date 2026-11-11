@@ -11,8 +11,8 @@
 # include <sys/stat.h> 
 # include <sys/types.h>
 
-# define PAYLOAD32 "Payload/payload32.bin"
-# define PAYLOAD64 "Payload/payload64.bin"
+# define PAYLOAD32 PAYLOAD_DIR "/payload32.bin"
+# define PAYLOAD64 PAYLOAD_DIR "/payload64.bin"
 
 typedef struct t_mmap_alloc {
 	void	*addr;
@@ -59,7 +59,7 @@ parsing_info	parse_elf64(int fd, char **err_msg);
 void	correct_section_header32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 void	correct_section_header64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 
-void	payload_insert(parsing_info *info, mmap_alloc *executable, char *exec_path, char **err_msg);
+void	payload_insert(parsing_info *info, mmap_alloc *executable, char **err_msg);
 void	payload_insert32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
 void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
 

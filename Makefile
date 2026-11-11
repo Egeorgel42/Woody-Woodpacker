@@ -1,19 +1,19 @@
 CC = gcc
 ASM = nasm
 
-LIB = libasm/libasm.a Libft/libft.a
-LIBDIR = libasm Libft
+ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
-PAYLOAD32 = Payload/payload32.bin
-PAYLOAD64 = Payload/payload64.bin
-PAYLOAD32SRC = Payload/XTEA_decrypt_32.s
-PAYLOAD64SRC = Payload/XTEA_decrypt_64.s
+LIB = Libft/libft.a
+LIBDIR = Libft
+
+PAYLOAD_DIR = $(ROOT_DIR)/Payload
+
+PAYLOAD32 = $(PAYLOAD_DIR)/payload32.bin
+PAYLOAD64 = $(PAYLOAD_DIR)/payload64.bin
+PAYLOAD32SRC = $(PAYLOAD_DIR)/XTEA_decrypt_32.s
+PAYLOAD64SRC = $(PAYLOAD_DIR)/XTEA_decrypt_64.s
 
 PAYLOADFLAGS = -f bin
-
-_pos = $(if $(findstring $1,$2),$(call _pos,$1,\
-       $(wordlist 2,$(words $2),$2),x $3),$3)
-pos = $(words $(call _pos,$1,$2))
 
 SRC = src/main.c \
 	src/elf_parsing.c \
@@ -28,8 +28,8 @@ SRC = src/main.c \
 
 OBJ = ${SRC:.c=.o}
 
-CFLAGS = -Wall -Wextra -Werror -g -z noexecstack -I include
-CLIBS = -L./libasm -lasm -L./Libft -lft
+CFLAGS = -Wall -Wextra -Werror -g -z noexecstack -I include -D PAYLOAD_DIR=\"$(PAYLOAD_DIR)\"
+CLIBS = -L./Libft -lft
 NAME = woody_woodpacker
 
 all: $(NAME)
@@ -44,7 +44,7 @@ $(PAYLOAD64):
 	$(ASM) $(PAYLOADFLAGS) $(PAYLOAD64SRC) -o $(PAYLOAD64)
 
 $(LIB):
-	make -C $(word $(call pos, $@, $(LIB)), $(LIBDIR));
+	make -C $(LIBDIR);
 
 %.o : %.s
 	$(ASM) -f elf64 -o $@ $<

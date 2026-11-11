@@ -12,7 +12,7 @@
 
 #include "libft.h"
 
-bool	ft_strcmp(const char *str, const char *cmp)
+int	ft_strcmp(const char *str, const char *cmp)
 {
 	int	i;
 
@@ -25,7 +25,5 @@ bool	ft_strcmp(const char *str, const char *cmp)
 	{
 		i++;
 	}
-	if (str[i] || cmp[i])
-		return (false);
-	return (true);
+	return (str[i] - cmp[i]);
 }

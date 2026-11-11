@@ -12,6 +12,6 @@ int main(int argc, char **argv)
 	parsing_info parsing = parse_elf(fd, err_msg);
 	close(fd);
 	mmap_alloc executable = encrypt_engine(&parsing, argv[1], err_msg);
-	payload_insert(&parsing, &executable, argv[0], err_msg);
+	payload_insert(&parsing, &executable, err_msg);
 	free_msg(err_msg);
 }
