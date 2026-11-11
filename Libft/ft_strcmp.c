@@ -14,13 +14,13 @@
 
 int	ft_strcmp(const char *str, const char *cmp)
 {
-	int	i;
+	int	i = 0;
 
-	i = 0;
 	if (!str || !cmp)
 		return (false);
-	if (ft_strlen(str) != ft_strlen(cmp))
-		return (false);
+	int size_delta = ft_strlen(str) - ft_strlen(cmp);
+	if (size_delta != 0)
+		return size_delta;
 	while (str[i] && str[i] == cmp[i])
 	{
 		i++;
