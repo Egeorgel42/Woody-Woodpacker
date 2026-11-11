@@ -34,6 +34,7 @@ char	**init_msgs()
 	assign_msg(ERR_WRITE, "woody_packer: Error during write operation: %s\n", err);
 	assign_msg(ERR_OPEN, "woody_packer: Error during open operation: %s\n", err);
 	assign_msg(ERR_MALLOC, "woody_packer: Malloc Error: %s\n", err);
+	assign_msg(ERR_LSEEK, "woody_packer: Error during lseek operation: %s\n", err);
 	return err;
 }
 

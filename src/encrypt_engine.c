@@ -35,12 +35,7 @@ static mmap_alloc	map_file(char *filename, char **err_msg)
         vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
     }
 
-    struct stat st;
-    if (fstat(fd, &st) == -1) {
-        close(fd);
-        vprintf_exit(ERR_STAT, err_msg, strerror(errno));
-    }
-    executable.size = st.st_size;
+    executable.size = get_file_size(fd);
 
     executable.addr = mmap(NULL, executable.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     close(fd);
@@ -85,6 +80,4 @@ mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg)
     }
 
     return executable;
-    // create_woody(file_ptr, total_file_size, err_msg);
-    // munmap(file_ptr, total_file_size);
 }

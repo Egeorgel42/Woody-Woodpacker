@@ -13,8 +13,8 @@ static Elf32_Shdr *get_s_hdr(int fd, char **err_msg, Elf32_Ehdr *header)
 	}
 
 	lseek(fd, header->e_shoff, SEEK_SET); //set read location to e_phoff
-	size_t rd = read(fd, s_hdr, size);
-	if (rd < size)
+	ssize_t rd = read(fd, s_hdr, size);
+	if (rd < (ssize_t)size)
 	{
 		close(fd);
 		free(s_hdr);
@@ -37,7 +37,14 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf32_Ehdr *header, cha
 	}
 
 	lseek(fd, s_hdr[header->e_shstrndx].sh_offset, SEEK_SET);
-	read(fd, buffer, s_hdr[header->e_shstrndx].sh_size);
+	ssize_t rd = read(fd, buffer, s_hdr[header->e_shstrndx].sh_size);
+	if (rd < s_hdr[header->e_shstrndx].sh_size)
+	{
+		close(fd);
+		free(buffer);
+		free(s_hdr);
+		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+	}
 
 	for (int i = 0; i < header->e_shnum; i++)
 	{
@@ -75,8 +82,8 @@ static Elf32_Phdr *get_p_hdr(int fd, char **err_msg, Elf32_Ehdr *header)
 	}
 
 	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
-	size_t rd = read(fd, p_hdr, size);
-	if (rd < size)
+	ssize_t rd = read(fd, p_hdr, size);
+	if (rd < (ssize_t)size)
 	{
 		close(fd);
 		free(p_hdr);
@@ -114,8 +121,8 @@ parsing_info	parse_elf32(int fd, char **err_msg)
 {
 	parsing_info info;
 	Elf32_Ehdr	header;
-	size_t rd = read(fd, &header, sizeof(Elf32_Ehdr));
-	if (rd < sizeof(Elf32_Ehdr))
+	ssize_t rd = read(fd, &header, sizeof(Elf32_Ehdr));
+	if (rd < (ssize_t)sizeof(Elf32_Ehdr))
 	{
 		close(fd);
 		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));

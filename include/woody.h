@@ -44,6 +44,7 @@ typedef enum t_err {
 	ERR_READ,
 	ERR_WRITE,
 	ERR_MALLOC,
+	ERR_LSEEK,
 	ERR_MAX
 } msg_err;
 
@@ -55,6 +56,7 @@ parsing_info	parse_elf(int fd, char **err_msg);
 parsing_info	parse_elf32(int fd, char **err_msg);
 parsing_info	parse_elf64(int fd, char **err_msg);
 
+off_t get_file_size(int fd);
 
 void	correct_section_header32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 void	correct_section_header64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);

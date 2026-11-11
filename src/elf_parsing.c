@@ -1,5 +1,19 @@
 #include "woody.h"
 
+off_t get_file_size(int fd)
+{
+	off_t	size;
+
+	size = lseek(fd, 0, SEEK_END);
+	if (size < 0) {
+        vprintf_exit(ERR_LSEEK, NULL, strerror(errno));
+    }
+	if (lseek(fd, 0, SEEK_SET) < 0) {
+        vprintf_exit(ERR_LSEEK, NULL, strerror(errno));
+    }
+	return size;
+}
+
 void	parse_e_indent(unsigned char *e_ident, char **err_msg)
 {
 	if (e_ident[EI_DATA] == ELFDATA2MSB) //big endian

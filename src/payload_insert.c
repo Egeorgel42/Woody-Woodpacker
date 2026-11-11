@@ -33,13 +33,7 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable, char *
         vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
     }
 
-    struct stat st;
-    if (fstat(fd, &st) == -1) {
-        close(fd);
-		munmap(executable->addr, executable->size);
-        vprintf_exit(ERR_STAT, err_msg, strerror(errno));
-    }
-    res.size = st.st_size;
+    res.size = get_file_size(fd);
 
     res.addr = mmap(NULL, res.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     close(fd);
