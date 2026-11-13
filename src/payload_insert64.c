@@ -1,7 +1,7 @@
 #include "woody.h"
 
 //find p_header corresponding to .text (encrypted) section and modify permitions
-static size_t	find_text_phdr(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
+static size_t	find_text_phdr(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
 {
 	Elf64_Ehdr *main_header = executable->addr;
 	Elf64_Shdr *sh_headers = executable->addr + main_header->e_shoff;
@@ -18,11 +18,10 @@ static size_t	find_text_phdr(parsing_info *info, mmap_alloc *executable, mmap_al
 			break;
 		}
 	}
-	if (text_phdr_index == (size_t)-1)
-	{
+	if (text_phdr_index == (size_t)-1) {
 		munmap(executable->addr, executable->size);
 		munmap(payload->addr, payload->size);
-		vprintf_exit(ERR_ELFHDR, err_msg);
+		error(ERR_ELFHDR);
 	}
 	return text_phdr_index;
 }
@@ -49,20 +48,21 @@ static void	insert_var_payload64(Elf64_Phdr *insert_hdr, parsing_info *info, mma
 
 /// @brief will modify executable elf headers phdr and shdr
 /// @return position of were executable should be inserted
-static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
+static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
 {
 	Elf64_Ehdr *main_header = executable->addr;
 	Elf64_Shdr *sh_headers = executable->addr + main_header->e_shoff;
 	Elf64_Phdr *p_headers = executable->addr + main_header->e_phoff;
 	Elf64_Phdr *insert_hdr = NULL;
 
-	size_t text_phdr_index = find_text_phdr(info, executable, payload, err_msg);
+	size_t text_phdr_index = find_text_phdr(info, executable, payload);
 
 	//find a program section that has a code cave big enough to insert payload, if it is the last program section, move all section header by the payload size
 	for (size_t i = 0; i < main_header->e_phnum; i++)
 	{
-		if (text_phdr_index == i)
+		if (text_phdr_index == i) {
 			continue;
+		}
 		size_t code_cave_end = executable->size - (main_header->e_shnum * main_header->e_shentsize);
 		if (i + 1 < main_header->e_phnum) //if not the last program section
 		{
@@ -78,18 +78,16 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
 			ft_memmove((char *)sh_headers + payload->size, sh_headers, main_header->e_shentsize * main_header->e_shnum); //move section header to the end to make space for payload
 			insert_hdr = &p_headers[i];
 			main_header->e_shoff += payload->size;		//rewrite section header pos
-			for (size_t j = 0; j < main_header->e_shnum; j++)
-			{
+			for (size_t j = 0; j < main_header->e_shnum; j++) {
 				sh_headers[j].sh_offset += payload->size;//rewrite section header pos
 			}
 			break;
 		}
 	}
-	if (!insert_hdr)
-	{
+	if (!insert_hdr) {
 		munmap(executable->addr, executable->size);
 		munmap(payload->addr, payload->size);
-		vprintf_exit(ERR_CAVE, err_msg);
+		error(ERR_CAVE);
 	}
 
 	insert_var_payload64(insert_hdr, info, executable, payload);
@@ -103,11 +101,11 @@ static size_t	payload_modify64(parsing_info *info, mmap_alloc *executable, mmap_
 	return injection_offset;
 }
 
-void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg)
+void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload)
 {
-	size_t payload_pos =  payload_modify64(info, executable, payload, err_msg);
+	size_t payload_pos =  payload_modify64(info, executable, payload);
 	ft_memcpy(executable->addr + payload_pos, payload->addr, payload->size);
 	munmap(payload->addr, payload->size);
-	create_woody(executable->addr, executable->size, err_msg);
+	create_woody(executable->addr, executable->size);
 	munmap(executable->addr, executable->size);
 }

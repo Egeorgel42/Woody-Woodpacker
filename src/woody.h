@@ -10,6 +10,9 @@
 # include <sys/mman.h> 
 # include <sys/stat.h> 
 # include <sys/types.h>
+# include <limits.h>
+
+# include "terminal_output.h"
 
 # define PAYLOAD32 PAYLOAD_DIR "/payload32.bin"
 # define PAYLOAD64 PAYLOAD_DIR "/payload64.bin"
@@ -28,45 +31,27 @@ typedef struct t_parsing_info {
 	size_t			text_shdr_index;
 } parsing_info;
 
-/// @brief Error codes related to woody
-typedef enum t_err {
-	ERR_MMAP,
-	ERR_STAT,
-	ERR_NCODE,
-	ERR_NELF,
-	ERR_NEXEC,
-	ERR_OSABI,
-	ERR_CAVE,
-	ERR_ELFHDR,
-	ERR_ENDIAN,
-	ERR_OPEN,
-	ERR_HELP,
-	ERR_READ,
-	ERR_WRITE,
-	ERR_MALLOC,
-	ERR_LSEEK,
-	ERR_MAX
-} msg_err;
+parsing_info	parse_elf(int fd);
+parsing_info	parse_elf32(int fd);
+parsing_info	parse_elf64(int fd);
 
-char	**init_msgs();
-void	vprintf_exit(int err, char **err_msg, ...);
-void	free_msg(char **err_msg);
-
-parsing_info	parse_elf(int fd, char **err_msg);
-parsing_info	parse_elf32(int fd, char **err_msg);
-parsing_info	parse_elf64(int fd, char **err_msg);
-
-off_t get_file_size(int fd);
+off_t	get_file_size(int fd);
+void	seek_exact(int fd, uint64_t offset);
+void	read_exact(int fd, void *buffer, size_t size);
+void	*read_alloc(int fd, uint64_t offset, size_t size);
+bool	valid_range(uint64_t file_size, uint64_t offset, uint64_t size);
+bool	valid_table(uint64_t file_size, uint64_t offset, uint64_t count,
+		uint64_t entry_size, size_t *table_size);
 
 void	correct_section_header32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 void	correct_section_header64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 
-void	payload_insert(parsing_info *info, mmap_alloc *executable, char **err_msg);
-void	payload_insert32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
-void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload, char **err_msg);
+void	payload_insert(parsing_info *info, mmap_alloc *executable);
+void	payload_insert32(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
+void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 
 void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg);
-void 		create_woody(void *file_ptr, size_t total_file_size, char **err_msg);
+mmap_alloc	encrypt_engine(parsing_info *info, char *filename);
+void 		create_woody(void *file_ptr, size_t total_file_size);
 
 #endif

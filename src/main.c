@@ -2,16 +2,14 @@
 
 int main(int argc, char **argv)
 {
-	char	**err_msg = init_msgs();
-
-	if (argc == 1)
-		vprintf_exit(ERR_HELP, err_msg);
+	if (argc == 1) {
+		print_message(HELP_MESSAGE);
+		return 0;
+	}
 	int fd = open(argv[1], O_RDWR);
-	if (fd == -1)
-		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
-	parsing_info parsing = parse_elf(fd, err_msg);
+	error_if(fd == -1, ERR_OPEN, strerror(errno));
+	parsing_info parsing = parse_elf(fd);
 	close(fd);
-	mmap_alloc executable = encrypt_engine(&parsing, argv[1], err_msg);
-	payload_insert(&parsing, &executable, err_msg);
-	free_msg(err_msg);
+	mmap_alloc executable = encrypt_engine(&parsing, argv[1]);
+	payload_insert(&parsing, &executable);
 }

@@ -10,46 +10,38 @@ static void generate_random_key(uint8_t *buffer, size_t size)
 {
 	// using dev/urandom for randomly generating the key
 	int fd = open("/dev/urandom", O_RDONLY);
-	if (fd == -1) {
-		perror("Fatal: Failed to open /dev/urandom");
-		exit(EXIT_FAILURE);
-	}
+    error_if(fd == -1, ERR_OPEN, strerror(errno));
 
 	// read 'size' bytes into buffer
 	ssize_t bytes_read = read(fd, buffer, size);
 	if (bytes_read != (ssize_t)size) {
-		perror("Fatal: Failed to read random bytes");
 		close(fd);
-		exit(EXIT_FAILURE);
+        error(ERR_READ, strerror(errno));
 	}
 
 	close(fd);
 }
 
-static mmap_alloc	map_file(char *filename, char **err_msg)
+static mmap_alloc	map_file(char *filename)
 {
 	mmap_alloc executable;
 
     int fd = open(filename, O_RDWR);
-    if (fd == -1) {
-        vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
-    }
+    error_if(fd == -1, ERR_OPEN, strerror(errno));
 
     executable.size = get_file_size(fd);
 
     executable.addr = mmap(NULL, executable.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     close(fd);
 
-    if (executable.addr == MAP_FAILED) {
-        vprintf_exit(ERR_MMAP, err_msg, strerror(errno));
-    }
+    error_if(executable.addr == MAP_FAILED, ERR_MMAP, strerror(errno));
     return executable;
 }
 
-mmap_alloc	encrypt_engine(parsing_info *info, char *filename, char **err_msg)
+mmap_alloc	encrypt_engine(parsing_info *info, char *filename)
 {
     // Map file in RAM
-    mmap_alloc executable = map_file(filename, err_msg);
+    mmap_alloc executable = map_file(filename);
 
     // randomly generate the encryption key
     generate_random_key(info->key, KEY_SIZE);

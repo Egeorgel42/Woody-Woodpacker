@@ -22,7 +22,6 @@ SRC = src/main.c \
 	src/payload_insert.c \
 	src/payload_insert32.c \
 	src/payload_insert64.c \
-	src/msg.c \
 	src/encrypt_engine.c \
 	Payload/XTEA_encrypt.c \
 

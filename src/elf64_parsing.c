@@ -1,7 +1,7 @@
 #include "woody.h"
 
 /// @brief read all of the program headers using "e_phoff (location of headers)" "e_phnum (num of header)" "e_phentsize (size of headers)" and parse them, if executable is dynamic check_PIE
-static Elf64_Shdr *get_s_hdr(int fd, char **err_msg, Elf64_Ehdr *header)
+static Elf64_Shdr *get_s_hdr(int fd, Elf64_Ehdr *header)
 {
 	size_t	size = header->e_shentsize * header->e_shnum;
 
@@ -9,7 +9,7 @@ static Elf64_Shdr *get_s_hdr(int fd, char **err_msg, Elf64_Ehdr *header)
 	if (!s_hdr)
 	{
 		close(fd);
-		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+		error(ERR_READ, strerror(errno));
 	}
 
 	lseek(fd, header->e_shoff, SEEK_SET); //set read location to e_phoff
@@ -18,22 +18,22 @@ static Elf64_Shdr *get_s_hdr(int fd, char **err_msg, Elf64_Ehdr *header)
 	{
 		close(fd);
 		free(s_hdr);
-		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+		error(ERR_READ, strerror(errno));
 	}
 	return s_hdr;
 }
 
 /// @brief allocate and return .text section data that need to be encrypted
-static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header, char **err_msg)
+static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header)
 {
 	Elf64_Shdr *res = NULL;
-	Elf64_Shdr *s_hdr = get_s_hdr(fd, err_msg, header);
+	Elf64_Shdr *s_hdr = get_s_hdr(fd, header);
 	char *buffer = malloc(s_hdr[header->e_shstrndx].sh_size);
 	if (!buffer)
 	{
 		close(fd);
 		free(s_hdr);
-		vprintf_exit(ERR_MALLOC, err_msg);
+		error(ERR_MALLOC, strerror(errno));
 	}
 
 	lseek(fd, s_hdr[header->e_shstrndx].sh_offset, SEEK_SET);
@@ -43,7 +43,7 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header, cha
 		close(fd);
 		free(buffer);
 		free(s_hdr);
-		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+		error(ERR_READ, strerror(errno));
 	}
 
 	for (int i = 0; i < header->e_shnum; i++)
@@ -61,7 +61,7 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header, cha
 	{
 		close(fd);
 		free(s_hdr);
-		vprintf_exit(ERR_NCODE, err_msg);
+		error(ERR_NCODE);
 	}
 
 	info->file_pos = res->sh_offset;
@@ -70,7 +70,7 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header, cha
 	free(s_hdr);
 }
 
-static Elf64_Phdr *get_p_hdr(int fd, char **err_msg, Elf64_Ehdr *header)
+static Elf64_Phdr *get_p_hdr(int fd, Elf64_Ehdr *header)
 {
 	size_t	size = header->e_phentsize * header->e_phnum;
 
@@ -78,7 +78,7 @@ static Elf64_Phdr *get_p_hdr(int fd, char **err_msg, Elf64_Ehdr *header)
 	if (!p_hdr)
 	{
 		close(fd);
-		vprintf_exit(ERR_MALLOC, err_msg, strerror(errno));
+		error(ERR_MALLOC, strerror(errno));
 	}
 
 	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
@@ -87,15 +87,15 @@ static Elf64_Phdr *get_p_hdr(int fd, char **err_msg, Elf64_Ehdr *header)
 	{
 		close(fd);
 		free(p_hdr);
-		vprintf_exit(ERR_READ, err_msg, strerror(errno));
+		error(ERR_READ, strerror(errno));
 	}
 	return p_hdr;
 }
 
 /// @brief gets specific phdr header to insert payload in, also checks for PIE to verify if file is an actual executable
-static void get_payload_info(int fd, Elf64_Ehdr *header, char **err_msg)
+static void get_payload_info(int fd, Elf64_Ehdr *header)
 {
-	Elf64_Phdr *p_hdr = get_p_hdr(fd, err_msg, header);
+	Elf64_Phdr *p_hdr = get_p_hdr(fd, header);
 	bool		is_executable = false;
 
 	for (int i = 0; i < header->e_phnum; i++)
@@ -111,13 +111,14 @@ static void get_payload_info(int fd, Elf64_Ehdr *header, char **err_msg)
 	if (!(is_executable))
 	{
 		close(fd);
-		if (!is_executable)
-			vprintf_exit(ERR_NEXEC, err_msg);
-		vprintf_exit(ERR_ELFHDR, err_msg);
+		if (!is_executable) {
+			error(ERR_NEXEC);
+		}
+		error(ERR_ELFHDR);
 	}
 }
 
-parsing_info	parse_elf64(int fd, char **err_msg)
+parsing_info	parse_elf64(int fd)
 {
 	parsing_info info;
 	Elf64_Ehdr	header;
@@ -125,22 +126,22 @@ parsing_info	parse_elf64(int fd, char **err_msg)
 	if (rd < (ssize_t)sizeof(Elf64_Ehdr))
 	{
 		close(fd);
-		vprintf_exit(ERR_OPEN, err_msg, strerror(errno));
+		error(ERR_OPEN, strerror(errno));
 	}
 	if (header.e_type != ET_EXEC && header.e_type != ET_DYN) // check for executable or dynamic program
 	{
 		close(fd);
-		vprintf_exit(ERR_NEXEC, err_msg);
+		error(ERR_NEXEC);
 	}
 	if (header.e_version == EV_NONE || header.e_version != EV_CURRENT)
 	{
 		close(fd);
-		vprintf_exit(ERR_ELFHDR, err_msg);
+		error(ERR_ELFHDR);
 	}
 	info.is_64 = true;
 	info.text_shdr_index = 0;
 
-	get_encrypt_info(fd, &info, &header, err_msg);
-	get_payload_info(fd, &header, err_msg);
+	get_encrypt_info(fd, &info, &header);
+	get_payload_info(fd, &header);
 	return info;
 }
