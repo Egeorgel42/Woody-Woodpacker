@@ -12,18 +12,10 @@ off_t get_file_size(int fd)
 
 void	parse_e_indent(unsigned char *e_ident)
 {
-	if (e_ident[EI_DATA] == ELFDATA2MSB) { //big endian
-		error(ERR_ENDIAN);
-	}
-	else if (e_ident[EI_DATA] == ELFDATANONE || e_ident[EI_DATA] != ELFDATA2LSB) { //?endian
-		error(ERR_ELFHDR);
-	}
-	if (e_ident[EI_VERSION] == EV_NONE || e_ident[EI_VERSION] != EV_CURRENT) {
-		error(ERR_ELFHDR);
-	}
-	if (e_ident[EI_ABIVERSION] != 0) {
-		error(ERR_ELFHDR);
-	}
+	error_if(e_ident[EI_DATA] == ELFDATA2MSB, ERR_ENDIAN); //big endian
+	error_if(e_ident[EI_DATA] == ELFDATANONE || e_ident[EI_DATA] != ELFDATA2LSB, ERR_ELFHDR);
+	error_if(e_ident[EI_VERSION] == EV_NONE || e_ident[EI_VERSION] != EV_CURRENT, ERR_ELFHDR);
+	error_if(e_ident[EI_ABIVERSION] != 0, ERR_ELFHDR);
 }
 
 parsing_info	parse_elf(int fd)
@@ -32,13 +24,9 @@ parsing_info	parse_elf(int fd)
 	unsigned char	check_ver[5] = {0x7F, 'E', 'L', 'F', 1}; //elf file always starts with 0x7F, E, L, F, last byte corresponds to 64 or 32
 
 	ssize_t rd = read(fd, e_ident, EI_NIDENT);
-	if (rd < EI_NIDENT) {
-		error(ERR_READ, strerror(errno));
-	}
+	error_if(rd < EI_NIDENT, ERR_READ, strerror(errno));
 
-	if (ft_strncmp((char *)e_ident, (char *)check_ver, 4)) {
-		error(ERR_ELFHDR);
-	}
+	error_if(ft_strncmp((char *)e_ident, (char *)check_ver, 4), ERR_ELFHDR);
 
 	parse_e_indent(e_ident);
 	lseek(fd, 0, SEEK_SET); //set read back to the start of file
