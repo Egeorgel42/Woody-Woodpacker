@@ -28,7 +28,7 @@ SRC = src/main.c \
 
 OBJ = ${SRC:.c=.o}
 
-CFLAGS = -Wall -Wextra -Werror -g -z noexecstack -I include -D PAYLOAD_DIR=\"$(PAYLOAD_DIR)\"
+CFLAGS = -Wall -Wextra -Werror -g -I include -D PAYLOAD_DIR=\"$(PAYLOAD_DIR)\"
 CLIBS = -L./Libft -lft
 NAME = woody_woodpacker
 
