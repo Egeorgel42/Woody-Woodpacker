@@ -17,28 +17,21 @@ static void generate_random_key(uint8_t *buffer, size_t size)
     error_if(!success, ERR_READ, strerror(errno));
 }
 
-static mmap_alloc	map_file(char *filename)
+static mmap_alloc	map_file(int fd)
 {
 	mmap_alloc executable;
 
-    int fd = open(filename, O_RDWR);
-    error_if(fd == -1, ERR_OPEN, strerror(errno));
-
     executable.size = get_file_size(fd);
-
     executable.addr = mmap(NULL, executable.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    close(fd);
 
     error_if(executable.addr == MAP_FAILED, ERR_MMAP, strerror(errno));
     return executable;
 }
 
-mmap_alloc	encrypt_engine(parsing_info *info, char *filename)
+mmap_alloc	encrypt_engine(parsing_info *info, int fd)
 {
-    // Map file in RAM
-    mmap_alloc executable = map_file(filename);
+    mmap_alloc executable = map_file(fd);
 
-    // randomly generate the encryption key
     generate_random_key(info->key, KEY_SIZE);
 
     printf("key_value: ");
@@ -60,11 +53,8 @@ mmap_alloc	encrypt_engine(parsing_info *info, char *filename)
     // info->file_size = number of bytes to cipher, divided by 8 since XTEA needs 64bits blocks
     size_t num_blocks = info->file_size / 8;
 
-    for (size_t i = 0; i < num_blocks; i++)
-    {
-        // Cipher directly inside memory
+    for (size_t i = 0; i < num_blocks; i++) {
         xtea_encipher(32, &code_ptr[i * 2], xtea_key);
     }
-
     return executable;
 }

@@ -50,7 +50,7 @@ void	payload_insert32(parsing_info *info, mmap_alloc *executable, mmap_alloc *pa
 void	payload_insert64(parsing_info *info, mmap_alloc *executable, mmap_alloc *payload);
 
 void 		xtea_encipher(unsigned int num_rounds, uint32_t tocipher[2], uint32_t const key[4]);
-mmap_alloc	encrypt_engine(parsing_info *info, char *filename);
+mmap_alloc	encrypt_engine(parsing_info *info, int fd);
 void 		create_woody(void *file_ptr, size_t total_file_size);
 
 #endif

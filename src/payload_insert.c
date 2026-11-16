@@ -50,10 +50,8 @@ static mmap_alloc	get_payload(parsing_info *info, mmap_alloc *executable)
 
 void	payload_insert(parsing_info *info, mmap_alloc *executable)
 {
-    // Get raw payload (readonly)
     mmap_alloc payload = get_payload(info, executable);
 
-    // call injection function
     if (info->is_64)
         payload_insert64(info, executable, &payload);
     else
