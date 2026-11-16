@@ -12,10 +12,8 @@ static Elf64_Shdr *get_s_hdr(int fd, Elf64_Ehdr *header)
 		error(ERR_READ, strerror(errno));
 	}
 
-	lseek(fd, header->e_shoff, SEEK_SET); //set read location to e_phoff
-	ssize_t rd = read(fd, s_hdr, size);
-	if (rd < (ssize_t)size)
-	{
+	seek_safe(fd, header->e_shoff);
+	if (!read_safe(fd, s_hdr, size)) {
 		close(fd);
 		free(s_hdr);
 		error(ERR_READ, strerror(errno));
@@ -36,10 +34,8 @@ static void get_encrypt_info(int fd, parsing_info *info, Elf64_Ehdr *header)
 		error(ERR_MALLOC, strerror(errno));
 	}
 
-	lseek(fd, s_hdr[header->e_shstrndx].sh_offset, SEEK_SET);
-	ssize_t rd = read(fd, buffer, s_hdr[header->e_shstrndx].sh_size);
-	if (rd < (ssize_t)s_hdr[header->e_shstrndx].sh_size)
-	{
+	seek_safe(fd, s_hdr[header->e_shstrndx].sh_offset);
+	if (!read_safe(fd, buffer, s_hdr[header->e_shstrndx].sh_size)) {
 		close(fd);
 		free(buffer);
 		free(s_hdr);
@@ -81,10 +77,8 @@ static Elf64_Phdr *get_p_hdr(int fd, Elf64_Ehdr *header)
 		error(ERR_MALLOC, strerror(errno));
 	}
 
-	lseek(fd, header->e_phoff, SEEK_SET); //set read location to e_phoff
-	ssize_t rd = read(fd, p_hdr, size);
-	if (rd < (ssize_t)size)
-	{
+	seek_safe(fd, header->e_phoff);
+	if (!read_safe(fd, p_hdr, size)) {
 		close(fd);
 		free(p_hdr);
 		error(ERR_READ, strerror(errno));
@@ -122,9 +116,7 @@ parsing_info	parse_elf64(int fd)
 {
 	parsing_info info;
 	Elf64_Ehdr	header;
-	ssize_t rd = read(fd, &header, sizeof(Elf64_Ehdr));
-	if (rd < (ssize_t)sizeof(Elf64_Ehdr))
-	{
+	if (!read_safe(fd, &header, sizeof(Elf64_Ehdr))) {
 		close(fd);
 		error(ERR_OPEN, strerror(errno));
 	}

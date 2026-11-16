@@ -36,9 +36,8 @@ parsing_info	parse_elf32(int fd);
 parsing_info	parse_elf64(int fd);
 
 off_t	get_file_size(int fd);
-void	seek_exact(int fd, uint64_t offset);
-void	read_exact(int fd, void *buffer, size_t size);
-void	*read_alloc(int fd, uint64_t offset, size_t size);
+void	seek_safe(int fd, int64_t offset);
+bool	read_safe(int fd, void *buffer, size_t size);
 bool	valid_range(uint64_t file_size, uint64_t offset, uint64_t size);
 bool	valid_table(uint64_t file_size, uint64_t offset, uint64_t count,
 		uint64_t entry_size, size_t *table_size);

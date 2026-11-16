@@ -12,14 +12,9 @@ static void generate_random_key(uint8_t *buffer, size_t size)
 	int fd = open("/dev/urandom", O_RDONLY);
     error_if(fd == -1, ERR_OPEN, strerror(errno));
 
-	// read 'size' bytes into buffer
-	ssize_t bytes_read = read(fd, buffer, size);
-	if (bytes_read != (ssize_t)size) {
-		close(fd);
-        error(ERR_READ, strerror(errno));
-	}
-
-	close(fd);
+    bool success = read_safe(fd, buffer, size);
+    close(fd);
+    error_if(!success, ERR_READ, strerror(errno));
 }
 
 static mmap_alloc	map_file(char *filename)

@@ -16,6 +16,7 @@ PAYLOAD64SRC = $(PAYLOAD_DIR)/XTEA_decrypt_64.s
 PAYLOADFLAGS = -f bin
 
 SRC = src/main.c \
+	src/io.c \
 	src/elf_parsing.c \
 	src/elf32_parsing.c \
 	src/elf64_parsing.c \
